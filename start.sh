@@ -6,7 +6,7 @@ MY_SUB_PORT=${SUB_PORT:-2096}
 mkdir -p /etc/x-ui/
 cd /usr/local/x-ui/
 
-# Default panel settings
+# تنظیمات پنل
 ./x-ui setting -username admin -password admin
 sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '/' WHERE key = 'webBasePath';" 2>/dev/null || true
 sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '${MY_PANEL_PORT}' WHERE key = 'webPort';" 2>/dev/null || true
@@ -28,37 +28,27 @@ else
     echo "Auto Mode Active: Starting C-Tunnel Engine directly."
     echo "==========================================================="
     
-    # Run the engine directly to bypass systemctl
-    # We use a trick: run the apply-link command but override PATH to catch the systemctl call,
-    # OR better yet, extract the engine args if possible. 
-    # Since C-Tunnel's apply-link handles the decoding, we will create a fake 'systemctl' command
-    # that just succeeds, allowing apply-link to finish its setup without crashing.
-    
-    mkdir -p /tmp/fake-bin
-    cat << 'EOF' > /tmp/fake-bin/systemctl
+    # ساخت فایل تقلبی systemctl مستقیما در مسیر اصلی سیستم
+    cat << 'EOF' > /usr/bin/systemctl
 #!/bin/sh
-echo "Fake systemctl called with args: $@"
+echo "Fake systemctl called: $@"
 exit 0
 EOF
-    chmod +x /tmp/fake-bin/systemctl
-    export PATH="/tmp/fake-bin:$PATH"
-
-    # Now apply the link. It will think it installed the service successfully.
+    chmod +x /usr/bin/systemctl
+    
+    # اعمال لینک (اکنون بدون ارور systemctl پیش می‌رود و کانفیگ را می‌سازد)
     ./c-tunnel apply-link "$TUNNEL_LINK"
     
-    # The apply-link command exits after saving the service. 
-    # We must now manually start the engine that apply-link configured.
-    # C-Tunnel creates a config file in /etc/ctunnel/ or similar, but the exact engine binary 
-    # is usually located in a sub-folder or requires specific args.
-    # A cleaner approach for Docker is to just run the tunnel engine based on the extracted configs.
-    
-    echo "Starting background engine..."
-    # Find the generated systemd service file to extract the ExecStart command
+    echo "Extracting background engine command..."
+    # پیدا کردن کانفیگی که C-Tunnel ساخته است
     SERVICE_FILE=$(find /etc/systemd/system -name "ctunnel-engine*.service" | head -n 1)
     
     if [ -f "$SERVICE_FILE" ]; then
+        # استخراج دستور اصلی اجرای تانل
         EXEC_CMD=$(grep '^ExecStart=' "$SERVICE_FILE" | sed 's/^ExecStart=//')
         echo "Running extracted command: $EXEC_CMD"
+        
+        # اجرای هسته تانل در خط جلو
         eval "$EXEC_CMD"
     else
         echo "Failed to find generated service file. Container will sleep to allow debugging."
