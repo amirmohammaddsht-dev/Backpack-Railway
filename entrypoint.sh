@@ -1,31 +1,21 @@
 #!/bin/bash
 
 echo "Starting Initialization for cTunnel-Railway..."
+mkdir -p /etc/x-ui
 
-# ۱. تنظیم پورت پنل ثنایی برای Railway (HTTP Domain)
-if [ -n "$PORT" ]; then
-    echo "Railway dynamic port detected: $PORT"
-    
-    # اطمینان از وجود مسیر دیتابیس
-    mkdir -p /etc/x-ui
-    
-    if [ ! -f "/etc/x-ui/x-ui.db" ]; then
-        echo "Initializing 3x-ui database on port $PORT..."
-        /usr/local/x-ui/x-ui setting -port $PORT
-    else
-        echo "Updating existing 3x-ui web port to $PORT..."
-        sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '${PORT}' WHERE key = 'webPort';"
-    fi
-fi
-
-# ۲. تزریق متغیر TUNNEL_LINK به BackPack
-if [ -n "$TUNNEL_LINK" ]; then
-    echo "TUNNEL_LINK detected. Configuring BackPack..."
-    # کش کردن لینک در یک فایل موقت برای استفاده در Supervisor
-    echo "$TUNNEL_LINK" > /opt/backpack/tunnel_link.txt
+# تنظیم دیتابیس پنل ثنایی برای اعمال پورت 2053 و یوزر/پسورد admin
+if [ ! -f "/etc/x-ui/x-ui.db" ]; then
+    echo "Creating new database with admin/admin on port 2053..."
+    /usr/local/x-ui/x-ui setting -username admin -password admin -port 2053
 else
-    echo "Warning: TUNNEL_LINK environment variable is not set."
+    echo "Updating existing database to port 2053..."
+    sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '2053' WHERE key = 'webPort';"
 fi
 
-# ۳. اجرای همزمان سرویس‌ها از طریق Supervisor
+# تزریق لینک تونل
+if [ -n "$TUNNEL_LINK" ]; then
+    echo "$TUNNEL_LINK" > /opt/backpack/tunnel_link.txt
+fi
+
+# اجرای سرویس‌ها
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
