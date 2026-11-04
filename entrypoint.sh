@@ -3,9 +3,10 @@
 echo "Starting Initialization for cTunnel-Railway..."
 mkdir -p /etc/x-ui
 
+# استفاده از مسیر صحیح باینری در داکر (/app/x-ui)
 if [ ! -f "/etc/x-ui/x-ui.db" ]; then
     echo "Creating new database with admin/admin on port 2053..."
-    x-ui setting -username admin -password admin -port 2053
+    cd /app && ./x-ui setting -username admin -password admin -port 2053
 else
     echo "Updating existing database to ensure port is 2053..."
     sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '2053' WHERE key = 'webPort';"
