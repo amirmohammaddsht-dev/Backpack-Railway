@@ -7,7 +7,17 @@ MY_TUNNEL_PORT=${TUNNEL_PORT:-8080}
 mkdir -p /etc/x-ui/
 cd /usr/local/x-ui/
 
-# تنظیمات پنل سنایی
+# ترمیم خودکار هسته Xray در صورت مخفی شدن توسط Volume
+if [ ! -f "bin/xray-linux-amd64" ]; then
+    echo "Xray core not found! Downloading automatically..."
+    mkdir -p bin
+    wget -q -O xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+    unzip -q xray.zip -d xray_temp
+    mv xray_temp/xray bin/xray-linux-amd64
+    chmod +x bin/xray-linux-amd64
+    rm -rf xray.zip xray_temp
+fi
+
 ./x-ui setting -username admin -password admin
 sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '/' WHERE key = 'webBasePath';" 2>/dev/null || true
 sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '${MY_PANEL_PORT}' WHERE key = 'webPort';" 2>/dev/null || true
@@ -27,20 +37,16 @@ else
     echo "Auto Mode: Starting C-Tunnel in Pure Userspace Mode..."
     echo "==========================================================="
     
-    # 1. ساخت ابزارهای فیک شبکه برای گول زدن C-Tunnel
-    echo "Mocking Kernel Network Tools to bypass TUN requirement..."
     mkdir -p /tmp/fake-net
     for cmd in ip iptables ip6tables sysctl modprobe; do
         cat << EOF > /tmp/fake-net/$cmd
 #!/bin/sh
-# فیک کردن خروجی موفقیت‌آمیز برای جلوگیری از کرش
 exit 0
 EOF
         chmod +x /tmp/fake-net/$cmd
     done
     export PATH="/tmp/fake-net:$PATH"
 
-    # 2. خنثی کردن اسکریپت درونی ساخت کارت شبکه C-Tunnel
     mkdir -p /usr/local/lib/ctunnel/
     cat << EOF > /usr/local/lib/ctunnel/ctunnel-kernel
 #!/bin/sh
@@ -48,18 +54,13 @@ exit 0
 EOF
     chmod +x /usr/local/lib/ctunnel/ctunnel-kernel
 
-    # 3. اعمال لینک با محیط فریب‌داده‌شده
     ctunnel apply-link "$TUNNEL_LINK"
     
-    # 4. اجرای موتور تانل
     SERVICE_FILE=$(find /etc/systemd/system -name "ctunnel-engine*.service" | head -n 1)
-    
     if [ -f "$SERVICE_FILE" ]; then
         EXEC_CMD=$(grep '^ExecStart=' "$SERVICE_FILE" | sed 's/^ExecStart=//')
-        echo "Executing Tunnel Engine without TUN..."
+        echo "Executing Tunnel Engine..."
         eval "$EXEC_CMD"
-        
-        echo "Tunnel engine stopped. Keeping container alive for Panel."
         tail -f /dev/null
     else
         echo "Service file not found."
