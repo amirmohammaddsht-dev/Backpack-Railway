@@ -1,30 +1,19 @@
-FROM ubuntu:22.04
-ENV DEBIAN_FRONTEND=noninteractive
+FROM ghcr.io/mhsanaei/3x-ui:latest
 
-# ۱. نصب پکیج‌های پایه‌ای
-RUN apt-get update && apt-get install -y curl wget git python3 nano sudo iptables iproute2 net-tools tzdata cron unzip jq sqlite3
+# نصب ابزارهای پیش‌نیاز
+RUN apt-get update && apt-get install -y git curl sqlite3 supervisor bash jq wget && rm -rf /var/lib/apt/lists/*
 
-# ۲. نصب پنل ۳x-ui و تنظیم اجباری یوزر و پسورد admin روی پورت 2053
-RUN curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh -o x-ui-install.sh && \
-    sed -i 's/last_version=.*/last_version="v3.11.0"/g' x-ui-install.sh && \
-    chmod +x x-ui-install.sh && \
-    yes "" | bash x-ui-install.sh || true && \
-    /usr/local/x-ui/x-ui setting -username admin -password admin -port 2053
+# دانلود پروژه BackPack
+RUN git clone https://github.com/AminMGMT/BackPack.git /opt/backpack
+WORKDIR /opt/backpack
+RUN chmod +x *.sh || true
 
-# ۳. نصب کامل سورس BackPack
-RUN git clone https://github.com/AminMGMT/BackPack.git /opt/BackPack && \
-    chmod +x /opt/BackPack/install.sh && \
-    echo '#!/bin/bash' > /usr/bin/backpack && \
-    echo 'cd /opt/BackPack && bash install.sh "$@"' >> /usr/bin/backpack && \
-    chmod +x /usr/bin/backpack
+# کپی کردن فایل‌های کانفیگ به داخل کانتینر
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-EXPOSE 2053
-EXPOSE 8080
+# مسیر دیتابیس پنل ثنایی برای اتصال به Volume
+VOLUME [ "/etc/x-ui" ]
 
-# ۴. اسکریپت استارت ایمن بدون دستورات ری‌استارت‌کننده
-RUN echo '#!/bin/bash' > /start.sh && \
-    echo 'cd /usr/local/x-ui && ./x-ui & ' >> /start.sh && \
-    echo 'tail -f /dev/null' >> /start.sh && \
-    chmod +x /start.sh
-
-CMD ["/start.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
