@@ -1,4 +1,4 @@
-app = "your-app-name"
+app = "ctunnel-railway"
 primary_region = "ams"
 
 [build]
@@ -7,7 +7,6 @@ primary_region = "ams"
 [[services]]
   internal_port = 8080
   protocol = "tcp"
-  # جلوگیری از خاموش شدن خودکار سرور
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
