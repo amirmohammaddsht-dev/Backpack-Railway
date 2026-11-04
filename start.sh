@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# خواندن پورت‌ها
 MY_PANEL_PORT=${PANEL_PORT:-2053}
 MY_TUNNEL_PORT=${TUNNEL_PORT:-8080}
 
