@@ -1,4 +1,4 @@
-app = "ctunnel-railway"
+app = "ctunnel-paas"
 primary_region = "ams"
 
 [build]
@@ -10,7 +10,19 @@ primary_region = "ams"
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
-
   [[services.ports]]
     handlers = ["tls", "http"]
     port = 2053
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
