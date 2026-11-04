@@ -13,7 +13,4 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# مسیر دیتابیس پنل ثنایی برای اتصال به Volume
-VOLUME [ "/etc/x-ui" ]
-
 ENTRYPOINT ["/entrypoint.sh"]
