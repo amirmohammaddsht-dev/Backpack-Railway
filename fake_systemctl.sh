@@ -8,7 +8,6 @@ SERVICE_NAME=$(basename "$SERVICE" .service)
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 if [[ "$COMMAND" == "start" ]]; then
-    # استخراج امن دستور اجرا و مسیر کار از فایل سرویس بک‌پک
     EXEC_START=$(sed -n 's/^ExecStart=\(.*\)/\1/p' "$SERVICE_FILE" | xargs)
     WORK_DIR=$(sed -n 's/^WorkingDirectory=\(.*\)/\1/p' "$SERVICE_FILE" | xargs)
     
@@ -22,6 +21,8 @@ if [[ "$COMMAND" == "start" ]]; then
     echo "stdout_logfile=/var/log/${SERVICE_NAME}.log" >> "/etc/supervisor/conf.d/${SERVICE_NAME}.conf"
     echo "stderr_logfile=/var/log/${SERVICE_NAME}.err.log" >> "/etc/supervisor/conf.d/${SERVICE_NAME}.conf"
     
+    # اضافه شدن reread برای شناسایی سرویس‌های جدید ساخته شده توسط بک‌پک
+    supervisorctl reread
     supervisorctl update
     supervisorctl start "${SERVICE_NAME}"
     exit 0
@@ -31,6 +32,7 @@ elif [[ "$COMMAND" == "stop" ]]; then
     exit 0
 
 elif [[ "$COMMAND" == "restart" ]]; then
+    supervisorctl reread
     supervisorctl update
     supervisorctl restart "${SERVICE_NAME}"
     exit 0
