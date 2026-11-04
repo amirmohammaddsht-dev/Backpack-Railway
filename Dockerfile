@@ -1,20 +1,32 @@
-FROM ghcr.io/mhsanaei/3x-ui:latest
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
 
-# استفاده از apk به جای apt-get برای نصب ابزارها روی ایمیج آلپاین
-RUN apk update && apk add --no-cache curl gzip && \
-    curl -s https://api.github.com/repos/jpillora/chisel/releases/latest \
-    | grep browser_download_url | grep linux_amd64.gz \
-    | cut -d '"' -f 4 | xargs curl -L -o chisel.gz && \
-    gzip -d chisel.gz && \
-    mv chisel /usr/local/bin/chisel && \
-    chmod +x /usr/local/bin/chisel
+# ۱. نصب پیش‌نیازهای لینوکسی برای اجرای پنل و بک‌پک
+RUN apt-get update && apt-get install -y curl wget git python3 nano sudo iptables iproute2 net-tools tzdata cron unzip jq
 
-ENV CHISEL_AUTH="admin:MySecretPassword"
+# ۲. نصب شبیه‌ساز systemd برای محیط‌های PaaS (Fly.io / Railway)
+RUN wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /bin/systemctl && \
+    chmod +x /bin/systemctl
 
-# اسکریپت راه‌انداز
-RUN echo '#!/bin/sh' > /start-both.sh && \
-    echo '/usr/local/bin/chisel server --port 8080 --auth "${CHISEL_AUTH}" --socks5 & ' >> /start-both.sh && \
-    echo 'cd /usr/local/x-ui && ./x-ui' >> /start-both.sh && \
-    chmod +x /start-both.sh
+# ۳. نصب کاملاً خودکار پنل ثنایی (یوزر: admin | رمز: admin | پورت: 2053)
+RUN curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh -o x-ui-install.sh && \
+    chmod +x x-ui-install.sh && \
+    bash x-ui-install.sh admin admin 2053
 
-CMD ["/start-both.sh"]
+# ۴. دانلود و نصب کاملاً خودکار پنل BackPack
+RUN git clone https://github.com/AminMGMT/BackPack.git /etc/BackPack && \
+    cd /etc/BackPack && \
+    chmod +x install.sh && \
+    # استفاده از yes برای رد کردن خودکار سوالات فرم نصب
+    yes "" | ./install.sh || true && \
+    # اطمینان از اینکه دستور backpack در کل سرور شناسایی می‌شود
+    ln -sf /etc/BackPack/backpack.sh /usr/bin/backpack && \
+    chmod +x /usr/bin/backpack
+
+# ۵. اسکریپت راه‌انداز اصلی کانتینر
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo '/bin/systemctl start x-ui' >> /start.sh && \
+    echo 'tail -f /dev/null' >> /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/start.sh"]
