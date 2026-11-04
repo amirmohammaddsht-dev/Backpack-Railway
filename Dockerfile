@@ -36,13 +36,11 @@ RUN go build -o /usr/local/bin/ctunnel ./cmd/ctunnel/
 RUN go build -o /usr/local/bin/ctunnel-engine ./cmd/ctunnel-engine/
 RUN mkdir -p /usr/local/lib/ctunnel && touch /usr/local/lib/ctunnel/ctunnel-kernel && chmod +x /usr/local/lib/ctunnel/ctunnel-kernel
 
-# ساخت systemctl مجازی برای جلوگیری از کرش C-Tunnel
-RUN cat << 'EOF' > /usr/bin/systemctl
-#!/bin/sh
-echo "Fake systemctl called: $@"
-exit 0
-EOF
-RUN chmod +x /usr/bin/systemctl
+# ساخت systemctl مجازی با روش استاندارد (بدون ارور پارسر Fly.io)
+RUN echo '#!/bin/sh' > /usr/bin/systemctl && \
+    echo 'echo "Fake systemctl called: $@"' >> /usr/bin/systemctl && \
+    echo 'exit 0' >> /usr/bin/systemctl && \
+    chmod +x /usr/bin/systemctl
 
 # انتقال و اجرای اسکریپت راه‌انداز
 COPY start.sh /app/start.sh
