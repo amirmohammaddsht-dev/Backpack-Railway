@@ -4,6 +4,7 @@ primary_region = "ams"
 [build]
   dockerfile = "Dockerfile"
 
+# سرویس اول: تانل وب‌سوکت (Chisel)
 [[services]]
   internal_port = 8080
   protocol = "tcp"
@@ -17,3 +18,15 @@ primary_region = "ams"
   [[services.ports]]
     handlers = ["tls", "http"]
     port = 443
+
+# سرویس دوم: دسترسی به پنل سنایی
+[[services]]
+  internal_port = 2053
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 2053
