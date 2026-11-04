@@ -2,11 +2,11 @@ FROM ghcr.io/mhsanaei/3x-ui:latest
 
 RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat socat gawk
 
-# جعل (Mock) دستور sudo برای جلوگیری از کرش کردن کدهای بک‌پک
+# جعل sudo
 RUN echo -e '#!/bin/bash\nexec "$@"' > /usr/bin/sudo && chmod +x /usr/bin/sudo
 
-# کپی کردن اسکریپت‌های مترجم
-RUN mkdir -p /etc/systemd/system/ /var/log/
+# اضافه شدن پوشه custom.d برای کانفیگ‌های داینامیک بک‌پک
+RUN mkdir -p /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/
 COPY fake_systemctl.sh /usr/bin/systemctl
 RUN chmod +x /usr/bin/systemctl
 
