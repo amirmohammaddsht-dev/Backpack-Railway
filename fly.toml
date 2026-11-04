@@ -1,23 +1,20 @@
-# fly.toml app configuration file generated for ctunnel-railway on 2026-11-04T08:01:07Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'ctunnel-railway'
-primary_region = 'ams'
+app = "your-app-name"
+primary_region = "ams"
 
 [build]
+  dockerfile = "Dockerfile"
 
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
+  protocol = "tcp"
+  # جلوگیری از خاموش شدن خودکار سرور
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
-  processes = ['app']
 
-[[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
-  memory_mb = 256
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
