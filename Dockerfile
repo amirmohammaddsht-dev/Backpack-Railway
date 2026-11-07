@@ -1,6 +1,6 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
 
-# فقط ابزارهای ضروری برای اجرای پنل، تونل و سوپروایزر
+# نصب ابزارهای پایه و ضروری. دقت کنید ابزارهای شبکه اضافی (socat/nginx) حذف شده‌اند.
 RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat gawk
 
 # جعل sudo برای بک‌پک
@@ -23,7 +23,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# باز کردن پورت‌ها برای اطلاع داکر و پلتفرم Railway (پنل، بک‌پک، وب‌سوکت Xray)
+# اعلام صریح پورت‌ها به محیط داکر و Railway
 EXPOSE 2053 2080 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
