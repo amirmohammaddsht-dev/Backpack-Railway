@@ -23,7 +23,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# باز کردن پورت‌ها برای اطلاع داکر (اختیاری اما استاندارد)
+# باز کردن پورت‌ها برای اطلاع داکر و پلتفرم Railway (پنل، بک‌پک، وب‌سوکت Xray)
 EXPOSE 2053 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
