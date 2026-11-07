@@ -24,6 +24,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # اعلام صریح پورت‌ها به محیط داکر و Railway
-EXPOSE 2053 2080 7777
+EXPOSE 2053 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
