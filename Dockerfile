@@ -24,6 +24,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # باز کردن پورت‌ها برای اطلاع داکر و پلتفرم Railway (پنل، بک‌پک، وب‌سوکت Xray)
-EXPOSE 2053 7777
+EXPOSE 2053 2080 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
