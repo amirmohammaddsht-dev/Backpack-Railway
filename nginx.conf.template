@@ -20,16 +20,15 @@ http {
 
         # 2. هدایت مسیر اختصاصی به وب‌یوآی بک‌پک
         location /backpack/ {
-            # توجه: اسلش آخر در آدرس آی‌پی برای حذف مسیر /backpack هنگام ارسال به بک‌پک مهم است
+            location /managepanel/ {
             proxy_pass http://127.0.0.1:7777/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            
-            # پشتیبانی از وب‌سوکت برای بک‌پک
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
 }
