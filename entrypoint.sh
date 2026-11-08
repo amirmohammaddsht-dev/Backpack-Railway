@@ -1,16 +1,12 @@
 ```bash
 #!/bin/bash
 
-<<<<<<< HEAD
 echo "Starting Initialization for Backpack-Railway..."
 
 # --------------------------------------------------
 # 1. Initialize 3x-ui database
 # --------------------------------------------------
 
-=======
-echo "Starting Initialization for cTunnel-Railway..."
->>>>>>> parent of 8368bad (envirmet variable for path test)
 mkdir -p /etc/x-ui
 
 if [ ! -f "/etc/x-ui/x-ui.db" ]; then
@@ -49,17 +45,6 @@ if [ -f "$BACKPACK_CONFIG" ]; then
     # Update only base_path and preserve other settings
     jq '.base_path = "/"' "$BACKPACK_CONFIG" > "$BACKPACK_CONFIG_TMP"
 
-<<<<<<< HEAD
-=======
-# تنظیمات وب‌یوآی بک‌پک برای اجرای روی پورت 2080
-export BACKPACK_WEBUI_PORT=2080
-export BACKPACK_WEBUI_PATH="/"
-
-# پیکربندی Nginx بر اساس پورت Railway
-if [ -n "$PORT" ]; then
-    echo "Configuring Nginx on port $PORT..."
-    envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
->>>>>>> parent of 8368bad (envirmet variable for path test)
 else
 
     echo "Creating new BackPack configuration..."
