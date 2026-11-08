@@ -1,12 +1,11 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
 
-# نصب ابزارهای پایه و ضروری. دقت کنید ابزارهای شبکه اضافی (socat/nginx) حذف شده‌اند.
-RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat gawk
+# نصب Nginx و gettext (برای envsubst)
+RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat socat gawk nginx gettext
 
-# جعل sudo برای بک‌پک
 RUN echo -e '#!/bin/bash\nexec "$@"' > /usr/bin/sudo && chmod +x /usr/bin/sudo
 
-RUN mkdir -p /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/
+RUN mkdir -p /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/ /run/nginx/
 COPY fake_systemctl.sh /usr/bin/systemctl
 RUN chmod +x /usr/bin/systemctl
 
@@ -20,10 +19,11 @@ RUN echo -e '#!/bin/bash\ncd /opt/backpack\nbash ./*.sh "$@"' > /usr/local/bin/b
 
 RUN mkdir -p /etc/supervisor/conf.d/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# کپی کردن قالب Nginx
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-# اعلام صریح پورت‌ها به محیط داکر و Railway
-EXPOSE 2053 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
