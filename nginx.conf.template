@@ -19,8 +19,7 @@ http {
         }
 
         # 2. هدایت مسیر اختصاصی به وب‌یوآی بک‌پک
-        location /backpack/ {
-            location /managepanel/ {
+        location /backpack/{
             proxy_pass http://127.0.0.1:7777/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
