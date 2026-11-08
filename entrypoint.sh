@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting Initialization for cTunnel-Railway..."
+echo "Starting Initialization for Backpack-Railway..."
 mkdir -p /etc/x-ui
 mkdir -p /etc/backpack
 
@@ -15,10 +15,6 @@ fi
 if [ -n "$TUNNEL_LINK" ]; then
     echo "$TUNNEL_LINK" > /opt/backpack/tunnel_link.txt
 fi
-
-# تنظیمات وب‌یوآی بک‌پک برای اجرای روی پورت 2080
-export BACKPACK_WEBUI_PORT=2080
-export BACKPACK_WEBUI_PATH="/"
 
 # پیکربندی Nginx بر اساس پورت Railway
 if [ -n "$PORT" ]; then
