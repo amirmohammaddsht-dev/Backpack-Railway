@@ -12,10 +12,16 @@ RUN chmod +x /usr/bin/systemctl
 COPY fake_journalctl.sh /usr/bin/journalctl
 RUN chmod +x /usr/bin/journalctl
 
-RUN git clone https://github.com/AminMGMT/BackPack.git /opt/backpack
-WORKDIR /opt/backpack
-RUN chmod +x *.sh || true
-RUN echo -e '#!/bin/bash\ncd /opt/backpack\nbash ./*.sh "$@"' > /usr/local/bin/backpack && chmod +x /usr/local/bin/backpack
+RUN wget -O /tmp/backpack.tar.gz https://github.com/AminMGMT/BackPack/releases/latest/download/backpack_linux_amd64.tar.gz && \
+    tar -xzf /tmp/backpack.tar.gz -C /opt/backpack/ && \
+    rm /tmp/backpack.tar.gz
+
+#COPY webui.json /etc/backpack/webui.json
+#COPY nginx.conf /etc/nginx/nginx.conf
+#COPY start.sh /start.sh
+
+#RUN chmod +x /start.sh && \
+    #chmod +x /opt/backpack/backpack
 
 RUN mkdir -p /etc/supervisor/conf.d/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
