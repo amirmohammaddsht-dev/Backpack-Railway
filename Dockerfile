@@ -1,4 +1,5 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
+FROM debian:bookworm-slim
 
 # نصب Nginx و gettext (برای envsubst)
 RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat socat gawk nginx gettext
