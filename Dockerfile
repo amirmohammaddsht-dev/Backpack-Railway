@@ -5,7 +5,7 @@ RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget lib
 
 RUN echo -e '#!/bin/bash\nexec "$@"' > /usr/bin/sudo && chmod +x /usr/bin/sudo
 
-RUN mkdir -p /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/ /run/nginx/
+RUN mkdir -p /etc/backpack /opt/backpack /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/ /run/nginx/
 COPY fake_systemctl.sh /usr/bin/systemctl
 RUN chmod +x /usr/bin/systemctl
 
