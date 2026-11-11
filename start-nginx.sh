@@ -4,19 +4,8 @@ echo "Waiting for BackPack to initialize (10s)..."
 # زمان انتظار را کمی بیشتر می‌کنیم تا ساخت فایل‌ها قطعی شود
 sleep 10
 
-<<<<<<< HEAD
-# استخراج مسیر با استفاده از grep -E و awk که در BusyBox پشتیبانی می‌شوند
-PANEL_PATH=$(grep -roE '"path": *"[^"]+"' /etc/backpack/ 2>/dev/null | head -n 1 | awk -F'"' '{print $4}')
-
-if [ -z "$PANEL_PATH" ]; then
-    # تلاش مجدد با کلید panel_url در صورت پیدا نشدن path
-    PANEL_PATH=$(grep -roE '"panel_url": *"[^"]+"' /etc/backpack/ 2>/dev/null | head -n 1 | awk -F'"' '{print $4}')
-fi
-=======
-<<<<<<< HEAD
 # استفاده از -a برای خواندن فایل‌های باینری/دیتابیس و جستجوی کلمات کلیدی مختلف
 PANEL_PATH=$(grep -airoE '"(path|panel_url|panelpath|base_path)": *"[^"]+"' /etc/backpack/ 2>/dev/null | head -n 1 | awk -F'"' '{print $4}')
->>>>>>> parent of 9cf4b16 (Revert "test for resolving third path address")
 
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
