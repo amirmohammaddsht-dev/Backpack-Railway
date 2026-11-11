@@ -5,7 +5,7 @@ echo "Waiting for BackPack to initialize and create config files..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-# صبر کردن تا زمانی که فایل webui.json ساخته شود
+# 1. صبر کردن تا ساخته شدن دقیق فایل webui.json
 while [ ! -f "/etc/backpack/webui.json" ]; do
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "Timeout: BackPack config files were not created after 60 seconds."
@@ -19,13 +19,15 @@ done
 echo "BackPack files detected! Proceeding to extract panel path..."
 sleep 2
 
-# استخراج دقیق base_path از فایل webui.json
-PANEL_PATH=$(grep -E '"base_path": *"[^"]+"' /etc/backpack/webui.json 2>/dev/null | awk -F'"' '{print $4}')
+# 2. استخراج مقدار base_path
+# با توجه به خروجی شما: "base_path": "cwHPZC4ZwFhMFR"
+PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
+# 3. جایگذاری در فایل Nginx
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
     
-    # جایگذاری مسیر در تنظیمات Nginx
+    # جایگذاری مسیر در فایل تنظیمات Nginx مربوط به لینوکس Alpine
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     echo "Nginx configured successfully for path: /$PANEL_PATH"
 else
