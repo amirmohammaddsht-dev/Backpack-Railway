@@ -5,7 +5,7 @@ echo "Waiting for BackPack to initialize and create config files..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-# صبر کردن تا زمانی که فایل webui.json ساخته شود
+# صبر کردن تا ساخته شدن دقیق فایل webui.json
 while [ ! -f "/etc/backpack/webui.json" ]; do
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "Timeout: BackPack config files were not created after 60 seconds."
@@ -19,23 +19,22 @@ done
 echo "BackPack files detected! Proceeding to extract panel path..."
 sleep 2
 
-# استخراج دقیق base_path از فایل webui.json
-PANEL_PATH=$(grep -E '"base_path": *"[^"]+"' /etc/backpack/webui.json 2>/dev/null | awk -F'"' '{print $4}')
+# استخراج دقیق base_path
+PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
     
-    # جایگذاری مسیر در تنظیمات Nginx
+    # خواندن پورت از محیط Railway (اگر تنظیم نشده بود پورت 8080)
+    NGINX_PORT=${PORT:-8080}
+    
+    # جایگذاری متغیرها در تنظیمات Nginx لینوکس Alpine
+    sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
-    echo "Nginx configured successfully for path: /$PANEL_PATH"
+    
+    echo "Nginx configured successfully on port $NGINX_PORT for path: /$PANEL_PATH"
 else
-    echo "Warning: Could not extract panel path. Running DEBUG mode..."
-    echo "--- DEBUG: Files in /etc/backpack/ ---"
-    ls -la /etc/backpack/
-    echo "--- DEBUG: File Contents ---"
-    # چاپ محتوای فایل‌ها برای پیدا کردن کلید دقیق
-    find /etc/backpack/ -type f -exec echo "File: {}" \; -exec cat {} \; -exec echo "" \;
-    echo "--------------------------------------"
+    echo "Warning: Could not extract base_path from webui.json."
 fi
 
 echo "Starting Nginx..."
