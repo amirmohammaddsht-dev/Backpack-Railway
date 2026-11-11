@@ -24,10 +24,9 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # نصب Nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
-
+RUN apk update && apk add --no-cache nginx
 # کپی تنظیمات Nginx و اسکریپت راه‌انداز
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
 

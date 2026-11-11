@@ -20,7 +20,7 @@ if [ -n "$PANEL_PATH" ]; then
     CLEAN_PATH=$(echo $PANEL_PATH | sed 's/^\///')
     
     # جایگذاری مسیر در فایل تنظیمات Nginx
-    sed -i "s|__SECRET_PATH__|$CLEAN_PATH|g" /etc/nginx/conf.d/default.conf
+sed -i "s|__SECRET_PATH__|$CLEAN_PATH|g" /etc/nginx/http.d/default.conf
 else
     echo "Warning: Could not extract panel path. Check /etc/backpack/ structure."
 fi
