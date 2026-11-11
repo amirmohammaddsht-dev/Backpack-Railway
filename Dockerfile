@@ -30,6 +30,8 @@ COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
 
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # [ادامه دستورات قبلی شما مانند کپی فایل‌های fake_systemctl و supervisord]
 # اطمینان حاصل کنید که این خط در انتهای فایل وجود دارد:
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
