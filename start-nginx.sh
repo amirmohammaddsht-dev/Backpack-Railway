@@ -5,7 +5,6 @@ echo "Waiting for BackPack to initialize and create config files..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-# صبر کردن تا ساخته شدن دقیق فایل webui.json
 while [ ! -f "/etc/backpack/webui.json" ]; do
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "Timeout: BackPack config files were not created after 60 seconds."
@@ -19,16 +18,13 @@ done
 echo "BackPack files detected! Proceeding to extract panel path..."
 sleep 2
 
-# استخراج دقیق base_path
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
     
-    # خواندن پورت از محیط Railway (اگر تنظیم نشده بود پورت 8080)
-    NGINX_PORT=${PORT:-8080}
+    NGINX_PORT=${PORT:-7777}
     
-    # جایگذاری متغیرها در تنظیمات Nginx لینوکس Alpine
     sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
