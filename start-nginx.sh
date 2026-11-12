@@ -25,7 +25,7 @@ if [ -n "$PANEL_PATH" ]; then
     
     NGINX_PORT=${PORT:-7777}
     
-    sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
+    #sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
     echo "Nginx configured successfully on port $NGINX_PORT for path: /$PANEL_PATH"
