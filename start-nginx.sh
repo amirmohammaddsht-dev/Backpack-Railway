@@ -28,7 +28,7 @@ if [ -n "$PANEL_PATH" ]; then
     #sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
-    echo "Nginx configured successfully on port $NGINX_PORT for path: /$PANEL_PATH"
+    echo "Nginx configured successfully on port 7777 for path: /$PANEL_PATH"
 else
     echo "Warning: Could not extract base_path from webui.json."
 fi
