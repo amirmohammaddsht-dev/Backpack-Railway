@@ -23,12 +23,10 @@ PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
     
-    NGINX_PORT=${PORT:-7777}
-    
-    #sed -i "s|__PORT__|$NGINX_PORT|g" /etc/nginx/http.d/default.conf
+    # Inject only the secret path
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
-    echo "Nginx configured successfully on port 7777 for path: /$PANEL_PATH"
+    echo "Nginx configured successfully for path: /$PANEL_PATH"
 else
     echo "Warning: Could not extract base_path from webui.json."
 fi
