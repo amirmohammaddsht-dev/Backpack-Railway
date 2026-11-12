@@ -18,11 +18,13 @@ done
 echo "BackPack files detected! Proceeding to extract panel path..."
 sleep 2
 
+# استخراج مسیر مخفی پنل
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
 if [ -n "$PANEL_PATH" ]; then
     echo "Successfully detected panel path: $PANEL_PATH"
     
+    # جایگذاری متغیر مسیر در تنظیمات Nginx
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
     echo "Nginx configured successfully for path: /$PANEL_PATH"
