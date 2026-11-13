@@ -7,7 +7,6 @@ fi
 
 echo "Waiting for BackPack configuration..."
 
-# 1. منتظر می‌مانیم تا بک‌پک فایل‌های کانفیگ را بسازد
 MAX_RETRIES=30
 RETRY_COUNT=0
 while [ ! -f "/etc/backpack/webui.json" ]; do
@@ -18,14 +17,34 @@ while [ ! -f "/etc/backpack/webui.json" ]; do
     RETRY_COUNT=$((RETRY_COUNT+1))
 done
 
-# 2. اجرای مستقیم فایل‌های پنل در پس‌زمینه (بدون نیاز به systemctl)
-echo "Starting WebUI directly..."
-/usr/local/bin/backpack-webui &
-/usr/local/bin/backpack-monitor &
+echo "Starting WebUI services..."
+
+# روش اول: اصلاح فرمت ویندوزی (CRLF) فایل شبیه‌ساز و اجرای پنل از طریق آن
+if [ -f "/usr/local/bin/systemctl" ]; then
+    sed -i 's/\r$//' /usr/local/bin/systemctl
+    chmod +x /usr/local/bin/systemctl
+    /usr/local/bin/systemctl start backpack-webui 2>/dev/null
+    /usr/local/bin/systemctl start backpack-monitor 2>/dev/null
+fi
 
 sleep 2
 
-# 3. استخراج مسیر و پسورد
+# روش دوم (پشتیبان قطعی): استخراج مستقیم دستورات از فایل‌های سرویس BackPack
+if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
+    echo "Emulator failed. Extracting direct commands from systemd configs..."
+    if [ -f "/etc/systemd/system/backpack-webui.service" ]; then
+        WEBUI_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-webui.service | cut -d'=' -f2-)
+        eval "$WEBUI_CMD &"
+    fi
+    if [ -f "/etc/systemd/system/backpack-monitor.service" ]; then
+        MONITOR_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-monitor.service | cut -d'=' -f2-)
+        eval "$MONITOR_CMD &"
+    fi
+fi
+
+sleep 2
+
+# استخراج مسیر و پسورد جدید برای لاگ Railway
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
