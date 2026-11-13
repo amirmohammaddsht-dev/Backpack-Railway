@@ -22,7 +22,7 @@ if [ -f "/usr/local/bin/systemctl" ]; then
     /usr/local/bin/systemctl start backpack-monitor 2>/dev/null
 fi
 
-sleep 2
+sleep 3
 
 if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
     if [ -f "/etc/systemd/system/backpack-webui.service" ]; then
@@ -35,7 +35,7 @@ if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
     fi
 fi
 
-sleep 2
+sleep 3
 
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
@@ -48,5 +48,5 @@ if [ -n "$PANEL_PATH" ]; then
     echo "============================================="
 fi
 
-# جلوگیری از بسته شدن اسکریپت و ری‌استارت شدن مداوم آن توسط supervisord
-tail -f /dev/null
+# این دستور حیاتی است! از بسته شدن اسکریپت جلوگیری می‌کند
+exec tail -f /dev/null
