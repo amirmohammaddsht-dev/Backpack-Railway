@@ -1,19 +1,13 @@
 #!/bin/sh
 
-# 1. ساخت فایل مسیر حیاتی
 mkdir -p /etc/backpack
 if [ ! -f "/etc/backpack/install_path" ]; then
     echo "/root/BackPack" > /etc/backpack/install_path
 fi
 
-echo "Initializing BackPack in background mode..."
+echo "Waiting for BackPack configuration..."
 
-# 2. فراخوانی اولیه سرویس‌ها به کمک شبیه‌سازهای نصب شده
-/usr/local/bin/systemctl start backpack
-/usr/local/bin/systemctl start backpack-webui
-/usr/local/bin/systemctl start backpack-monitor
-
-# 3. اطمینان از ایجاد فایل تنظیمات پنل
+# 1. منتظر می‌مانیم تا بک‌پک فایل‌های کانفیگ را بسازد
 MAX_RETRIES=30
 RETRY_COUNT=0
 while [ ! -f "/etc/backpack/webui.json" ]; do
@@ -24,12 +18,18 @@ while [ ! -f "/etc/backpack/webui.json" ]; do
     RETRY_COUNT=$((RETRY_COUNT+1))
 done
 
-# 4. استخراج اطلاعات پنل
+# 2. اجرای مستقیم فایل‌های پنل در پس‌زمینه (بدون نیاز به systemctl)
+echo "Starting WebUI directly..."
+/usr/local/bin/backpack-webui &
+/usr/local/bin/backpack-monitor &
+
+sleep 2
+
+# 3. استخراج مسیر و پسورد
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
 if [ -n "$PANEL_PATH" ]; then
-    # تنظیم مسیر مخفی در Nginx
     sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
     
     echo "============================================="
