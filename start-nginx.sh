@@ -19,7 +19,6 @@ done
 
 echo "Starting WebUI services..."
 
-# روش اول: اصلاح فرمت ویندوزی (CRLF) فایل شبیه‌ساز و اجرای پنل از طریق آن
 if [ -f "/usr/local/bin/systemctl" ]; then
     sed -i 's/\r$//' /usr/local/bin/systemctl
     chmod +x /usr/local/bin/systemctl
@@ -29,7 +28,6 @@ fi
 
 sleep 2
 
-# روش دوم (پشتیبان قطعی): استخراج مستقیم دستورات از فایل‌های سرویس BackPack
 if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
     echo "Emulator failed. Extracting direct commands from systemd configs..."
     if [ -f "/etc/systemd/system/backpack-webui.service" ]; then
@@ -44,12 +42,36 @@ fi
 
 sleep 2
 
-# استخراج مسیر و پسورد جدید برای لاگ Railway
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
 if [ -n "$PANEL_PATH" ]; then
-    sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
+    
+    # تولید فایل کانفیگ Nginx به صورت کاملاً داینامیک و نوشتن مستقیم آن
+    cat > /etc/nginx/http.d/default.conf <<EOF
+server {
+    listen 8080;
+    listen [::]:8080;
+
+    # ریدایرکت مطلق و اجباری روی پروتکل HTTPS
+    location = / {
+        return 302 https://\$host/$PANEL_PATH;
+    }
+
+    # انتقال ایمن ترافیک به پورت اصلی پنل バック‌پک (۷۷۷۷)
+    location / {
+        proxy_pass http://127.0.0.1:7777;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
     
     echo "============================================="
     echo "🚀 PANEL IS READY (STATELESS MODE)"
