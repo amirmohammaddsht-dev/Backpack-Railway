@@ -29,21 +29,6 @@ fi
 
 sleep 2
 
-# روش دوم (پشتیبان قطعی): استخراج مستقیم دستورات از فایل‌های سرویس BackPack
-if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
-    echo "Emulator failed. Extracting direct commands from systemd configs..."
-    if [ -f "/etc/systemd/system/backpack-webui.service" ]; then
-        WEBUI_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-webui.service | cut -d'=' -f2-)
-        eval "$WEBUI_CMD &"
-    fi
-    if [ -f "/etc/systemd/system/backpack-monitor.service" ]; then
-        MONITOR_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-monitor.service | cut -d'=' -f2-)
-        eval "$MONITOR_CMD &"
-    fi
-fi
-
-sleep 2
-
 # استخراج مسیر و پسورد جدید برای لاگ Railway
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
@@ -58,5 +43,4 @@ if [ -n "$PANEL_PATH" ]; then
     echo "============================================="
 fi
 
-echo "Starting Nginx..."
 exec /usr/sbin/nginx -g "daemon off;"
