@@ -13,3 +13,17 @@ fi
 
 echo "Services are ready to listen on their native ports."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+
+# استخراج مسیر و پسورد جدید برای لاگ Railway
+PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
+PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
+
+if [ -n "$PANEL_PATH" ]; then
+    sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
+    
+    echo "============================================="
+    echo "🚀 PANEL IS READY (STATELESS MODE)"
+    echo "🌐 PATH: /$PANEL_PATH"
+    echo "🔑 PASSWORD: $PANEL_PASS"
+    echo "============================================="
+fi

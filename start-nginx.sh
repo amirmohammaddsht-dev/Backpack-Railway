@@ -27,20 +27,4 @@ if [ -f "/usr/local/bin/systemctl" ]; then
     /usr/local/bin/systemctl start backpack-monitor 2>/dev/null
 fi
 
-sleep 2
-
-# استخراج مسیر و پسورد جدید برای لاگ Railway
-PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
-PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
-
-if [ -n "$PANEL_PATH" ]; then
-    sed -i "s|__SECRET_PATH__|$PANEL_PATH|g" /etc/nginx/http.d/default.conf
-    
-    echo "============================================="
-    echo "🚀 PANEL IS READY (STATELESS MODE)"
-    echo "🌐 PATH: /$PANEL_PATH"
-    echo "🔑 PASSWORD: $PANEL_PASS"
-    echo "============================================="
-fi
-
 exec /usr/sbin/nginx -g "daemon off;"
