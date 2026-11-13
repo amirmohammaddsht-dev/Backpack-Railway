@@ -1,37 +1,38 @@
 #!/bin/sh
 
-# ۱. ساخت مسیر نصب اولیه
 mkdir -p /etc/backpack
 if [ ! -f "/etc/backpack/install_path" ]; then
     echo "/root/BackPack" > /etc/backpack/install_path
 fi
 
-# ۲. استارت کردن سرویس‌های وب‌یوآی (قبل از هر کار دیگری)
-if [ -f "/usr/local/bin/systemctl" ]; then
-    sed -i 's/\r$//' /usr/local/bin/systemctl
-    chmod +x /usr/local/bin/systemctl
-    /usr/local/bin/systemctl start backpack-webui 2>/dev/null
-    /usr/local/bin/systemctl start backpack-monitor 2>/dev/null
-fi
+echo "Waiting for BackPack installation to finish..."
 
-sleep 3
+# ۱. صبر می‌کنیم تا اسکریپت نصب، فایل اجرایی را دانلود کند
+while [ ! -x "/usr/local/bin/backpack" ]; do
+    sleep 1
+done
 
-if ! supervisorctl status backpack-webui | grep -q "RUNNING"; then
-    if [ -f "/etc/systemd/system/backpack-webui.service" ]; then
-        WEBUI_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-webui.service | cut -d'=' -f2-)
-        eval "$WEBUI_CMD &"
-    fi
-    if [ -f "/etc/systemd/system/backpack-monitor.service" ]; then
-        MONITOR_CMD=$(grep -m 1 '^ExecStart=' /etc/systemd/system/backpack-monitor.service | cut -d'=' -f2-)
-        eval "$MONITOR_CMD &"
-    fi
-fi
+# مکث کوتاه برای اطمینان از اتمام کار installer
+sleep 2
 
-# ۳. حالا منتظر ساخته شدن فایل توسط وب‌یوآی می‌مانیم
+# ۲. ساخت میان‌برهای اجرایی به صورت دستی (جهت رفع محدودیت Alpine)
+ln -sf /usr/local/bin/backpack /usr/local/bin/backpack-webui
+ln -sf /usr/local/bin/backpack /usr/local/bin/backpack-monitor
+
+echo "Starting WebUI services directly..."
+
+# ۳. اجرای مستقیم سرویس‌های پنل وب
+/usr/local/bin/backpack-webui &
+/usr/local/bin/backpack-monitor &
+
+echo "Waiting for WebUI to generate config..."
+
+# ۴. منتظر ماندن برای ساخت فایل کانفیگ توسط وب‌یوآی
 MAX_RETRIES=30
 RETRY_COUNT=0
 while [ ! -f "/etc/backpack/webui.json" ]; do
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "Timeout waiting for webui.json"
         break
     fi
     sleep 2
@@ -40,7 +41,7 @@ done
 
 sleep 2
 
-# ۴. استخراج مسیر و رمز عبور
+# ۵. استخراج آدرس و پسورد جدید
 PANEL_PATH=$(grep -oE '"base_path": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 PANEL_PASS=$(grep -oE '"password": *"[^"]+"' /etc/backpack/webui.json | awk -F'"' '{print $4}')
 
@@ -52,5 +53,5 @@ if [ -n "$PANEL_PATH" ]; then
     echo "============================================="
 fi
 
-# ۵. زنده نگه داشتن اسکریپت برای supervisord
-while true; do sleep 1000; done
+# زنده نگه داشتن اسکریپت برای supervisord
+exec tail -f /dev/null
