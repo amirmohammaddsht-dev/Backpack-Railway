@@ -23,18 +23,10 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# نصب Nginx
-RUN apk update && apk add --no-cache nginx
-# کپی تنظیمات Nginx و اسکریپت راه‌انداز
-COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY start-nginx.sh /start-nginx.sh
-RUN chmod +x /start-nginx.sh
+COPY start-panel.sh /start-panel.sh
+RUN chmod +x /start-panel.sh 
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# [ادامه دستورات قبلی شما مانند کپی فایل‌های fake_systemctl و supervisord]
-# اطمینان حاصل کنید که این خط در انتهای فایل وجود دارد:
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
 # باز کردن پورت‌ها برای اطلاع داکر و پلتفرم Railway (پنل، بک‌پک، وب‌سوکت Xray)
 EXPOSE 2053 7777
