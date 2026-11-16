@@ -54,7 +54,9 @@ elif [ "$COMMAND" == "restart" ]; then
 
 elif [ "$COMMAND" == "is-active" ]; then
     STATE=$(supervisorctl status "${SERVICE_NAME}" 2>/dev/null | awk '{print $2}')
-    if [[ "$STATE" == "RUNNING" ]]; then echo "active"; exit 0; else echo "inactive"; exit 3; fi
+    # STARTING counts as active: right after `enable --now` supervisord reports STARTING for
+    # about a second, and BackPack would otherwise report a healthy tunnel as "did not start".
+    if [[ "$STATE" == "RUNNING" || "$STATE" == "STARTING" ]]; then echo "active"; exit 0; else echo "inactive"; exit 3; fi
 
 elif [ "$COMMAND" == "enable" ] || [ "$COMMAND" == "disable" ]; then
     exit 0
