@@ -1,17 +1,19 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
 
-# فقط ابزارهای ضروری برای اجرای پنل، تونل و سوپروایزر
-RUN apk update && apk add --no-cache git curl sqlite supervisor bash jq wget libc6-compat gawk
-
-# جعل sudo برای بک‌پک
-RUN echo -e '#!/bin/bash\nexec "$@"' > /usr/bin/sudo && chmod +x /usr/bin/sudo
-
-RUN mkdir -p /etc/systemd/system/ /var/log/ /etc/supervisor/custom.d/
-COPY fake_systemctl.sh /usr/bin/systemctl
-RUN chmod +x /usr/bin/systemctl
-
-COPY fake_journalctl.sh /usr/bin/journalctl
-RUN chmod +x /usr/bin/journalctl
+# Only what runs here: supervisor runs every process, gawk is what the log colouring in
+# fake_journalctl.sh is written for. bash and curl are already in the base image.
+# Everything else this image used to install (git, jq, wget, sqlite, libc6-compat) is gone:
+# BackPack is now a static release binary, not a cloned repository.
+RUN apk add --no-cache supervisor bash curl gawk \
+    && mkdir -p /etc/supervisor/conf.d /etc/supervisor/custom.d /etc/systemd/system /etc/backpack /var/log \
+    # BackPack calls sudo; there is nobody to elevate to in a container
+    && printf '#!/bin/bash\nexec "$@"\n' > /usr/bin/sudo && chmod +x /usr/bin/sudo \
+    # Unit files for the web panel and the monitor. They run as programs of supervisord.conf;
+    # these files exist because BackPack treats a missing unit as "service not installed".
+    && for s in webui monitor; do \
+         printf '[Service]\nExecStart=/usr/local/bin/backpack --%s\nRestart=always\n' "$s" \
+           > "/etc/systemd/system/backpack-$s.service"; \
+       done
 
 # BackPack: official static release binary, verified against the published SHA256SUMS.
 # It must live at /usr/local/bin/backpack, because the tunnel unit it writes runs
@@ -36,22 +38,22 @@ RUN set -eux; \
     grep -E "[[:space:]]\*?${ASSET}\$" SHA256SUMS | sha256sum -c -; \
     tar -xzf "$ASSET" backpack; \
     install -m 0755 backpack /usr/local/bin/backpack; \
-    rm -f "$ASSET" SHA256SUMS backpack; \
-    mkdir -p /etc/backpack
+    rm -f "$ASSET" SHA256SUMS backpack
 
-RUN mkdir -p /etc/supervisor/conf.d/
+COPY fake_systemctl.sh /usr/bin/systemctl
+COPY fake_journalctl.sh /usr/bin/journalctl
+COPY apply-link.sh /usr/local/bin/apply-link.sh
+COPY Panel-config.sh /usr/local/bin/panel-config.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY entrypoint.sh /entrypoint.sh
+
 # fake_systemctl.sh calls a bare `supervisorctl`, which only finds its socket through a
 # config in one of its default locations - point /etc/supervisord.conf at ours.
-RUN ln -sf /etc/supervisor/conf.d/supervisord.conf /etc/supervisord.conf
+RUN chmod +x /usr/bin/systemctl /usr/bin/journalctl /usr/local/bin/apply-link.sh \
+             /usr/local/bin/panel-config.sh /entrypoint.sh \
+    && ln -sf /etc/supervisor/conf.d/supervisord.conf /etc/supervisord.conf
 
-COPY apply-link.sh /usr/local/bin/apply-link.sh
-RUN chmod +x /usr/local/bin/apply-link.sh
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# باز کردن پورت‌ها برای اطلاع داکر و پلتفرم Railway (پنل، بک‌پک، وب‌سوکت Xray)
+# Ports for the platform: 2053 = 3x-ui panel, 7777 = BackPack web panel
 EXPOSE 2053 7777
 
 ENTRYPOINT ["/entrypoint.sh"]
