@@ -8,8 +8,11 @@ if [ ! -f "/etc/x-ui/x-ui.db" ]; then
     cd /app && ./x-ui setting -username admin -password admin -port 2053
 else
     echo "Updating existing database to ensure port is 2053..."
-    sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value = '2053' WHERE key = 'webPort';"
+    cd /app && ./x-ui setting -port 2053
 fi
+
+# BackPack web panel: write its settings (path, password, port) from the PANEL_* variables.
+/usr/local/bin/panel-config.sh
 
 # The tunnel itself is built by the tunnel-setup program (apply-link.sh) once
 # supervisord is up, because it needs supervisord to run the tunnel process.
