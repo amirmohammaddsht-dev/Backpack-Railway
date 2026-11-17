@@ -42,7 +42,8 @@ RUN set -eux; \
 
 COPY fake_systemctl.sh /usr/bin/systemctl
 COPY fake_journalctl.sh /usr/bin/journalctl
-COPY apply-link.sh panel-config.sh /usr/local/bin/
+COPY apply-link.sh /usr/local/bin/apply-link.sh
+COPY Panel-config.sh /usr/local/bin/panel-config.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 
