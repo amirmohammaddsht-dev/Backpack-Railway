@@ -35,11 +35,12 @@ swap_size_mb = 512
 [[restart]]
   policy = "always"
 
-# The public address shows the BackPack web panel, which answers only under /<PANEL_PATH>/.
-# 3x-ui (port 2053) is deliberately not public; reach it with:  fly proxy 2053:2053
-# (to publish it instead, change internal_port to 2053).
+# The public address shows 3x-ui (port 2053): change its first-login admin / admin at once.
+# The BackPack web panel (port 7777, answers only under /<PANEL_PATH>/) is not public; reach it with:
+#   fly proxy 7777:7777      then open http://localhost:7777/<PANEL_PATH>/
+# (to publish the BackPack panel instead, change internal_port to 7777).
 [http_service]
-  internal_port = 7777
+  internal_port = 2053
   force_https = true
   auto_stop_machines = "off"
   auto_start_machines = false
