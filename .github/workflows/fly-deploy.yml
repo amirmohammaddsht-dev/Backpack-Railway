@@ -1,0 +1,51 @@
+name: Deploy to Fly.io
+
+# Run it from the Actions tab: "Deploy to Fly.io" -> "Run workflow".
+# Set the repository secrets first (Settings -> Secrets and variables -> Actions); the README
+# section "Fly.io" lists them. The work is done by fly-deploy.sh.
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: "Fly app name (lowercase letters, digits, dashes; unique on Fly.io). Empty = variable FLY_APP_NAME, else backpack-<your GitHub name>"
+        required: false
+        default: ""
+      region:
+        description: "Fly region code, e.g. fra. Empty = variable FLY_REGION, else fra"
+        required: false
+        default: ""
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # A push only deploys when the repository variable FLY_AUTODEPLOY is "true".
+    if: github.event_name == 'workflow_dispatch' || vars.FLY_AUTODEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: bash fly-deploy.sh
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ inputs.app_name || vars.FLY_APP_NAME }}
+          FLY_REGION: ${{ inputs.region || vars.FLY_REGION }}
+          FLY_ORG: ${{ vars.FLY_ORG }}
+          TUNNEL_LINK: ${{ secrets.TUNNEL_LINK }}
+          TUNNEL_NAME: ${{ vars.TUNNEL_NAME }}
+          TUNNEL_HOST: ${{ vars.TUNNEL_HOST }}
+          PANEL_PATH: ${{ secrets.PANEL_PATH }}
+          PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
+          BACKPACK_VERSION: ${{ vars.BACKPACK_VERSION }}

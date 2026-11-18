@@ -2,3 +2,7 @@
 .gitignore
 .dockerignore
 *.md
+fly.toml
+fly.deploy.toml
+fly-deploy.sh
+.github

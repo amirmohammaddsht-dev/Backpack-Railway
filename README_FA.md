@@ -19,6 +19,7 @@
 - [متغیرها](#متغیرها)
 - [تنظیم پورت‌ها](#تنظیم-پورتها)
 - [ماندگاری داده‌ها](#ماندگاری-دادهها)
+- [Fly.io و Blitz.cloud](#flyio-و-blitzcloud)
 - [امنیت](#امنیت)
 - [عیب‌یابی](#عیبیابی)
 - [جزئیات فنی](#جزئیات-فنی)
@@ -99,7 +100,7 @@ sudo backpack
 → Transport            برای شروع TCP یا TCP Mux
 → Iran IP Or Domain    آدرسی که Railway باید به آن وصل شود
 → Tunnel Port          مثلاً 3002
-→ Forwarded Ports      مثلاً 443=127.0.0.1:2096   (بخش «تنظیم پورت‌ها»)
+→ Forwarded Ports      مثلاً 443=127.0.0.1:2002   (بخش «تنظیم پورت‌ها»)
 → Tunnel Name
 → Security Token       خودکار ساخته می‌شود؛ Enter
 → How Should The Tunnel Be Tuned?   Turbo
@@ -173,7 +174,7 @@ PANEL_PASSWORD=choose-a-strong-password
 حالا:
 
 - **پنل BackPack:** `https://<دامنه-railway>/<PANEL_PATH>/` را باز کن و با `PANEL_PASSWORD` وارد شو. (آدرس بدون مسیر عمداً `404` می‌دهد.)
-- **3x-ui:** Target Port دامنه را موقتاً `2053` کن و `https://<دامنه-railway>/` را باز کن. اول‌بار نام کاربری و رمز هر دو `admin` است؛ **همان لحظه عوضشان کن.** یک **inbound** بساز که **پورتش دقیقاً همان پورتی باشد که در Forwarded Ports ایران نوشتی** (در مثال `2096`). تونل ترافیک را به `127.0.0.1:2096` داخل کانتینر می‌رساند، و اگر آنجا چیزی گوش ندهد لاگ می‌نویسد `nothing is listening on 127.0.0.1:2096 on THIS server`.
+- **3x-ui:** Target Port دامنه را موقتاً `2053` کن و `https://<دامنه-railway>/` را باز کن. اول‌بار نام کاربری و رمز هر دو `admin` است؛ **همان لحظه عوضشان کن.** یک **inbound** بساز که **پورتش دقیقاً همان پورتی باشد که در Forwarded Ports ایران نوشتی** (در مثال `2002`). تونل ترافیک را به `127.0.0.1:2002` داخل کانتینر می‌رساند، و اگر آنجا چیزی گوش ندهد لاگ می‌نویسد `nothing is listening on 127.0.0.1:2002 on THIS server`.
 - **کلاینت:** در کانفیگ کاربر **آی‌پی سرور ایران** و **پورت بیرونی** (مثلاً `443`) را بگذار، نه آدرس Railway.
 
 ---
@@ -212,14 +213,14 @@ BackPack را هم هر بار که build شود، آخرین ریلیز رسم�
 
 | ورودی | معنی |
 |---|---|
-| `443=127.0.0.1:2096` | کاربر به ایران:`443` وصل شود، تونل به `127.0.0.1:2096` کانتینر برساند |
-| `443=127.0.0.1:2096, 8443=127.0.0.1:2097` | چند inbound با یک تونل |
-| `443=127.0.0.1:2096\|127.0.0.1:2097` | دو backend با بالانس و health check |
+| `443=127.0.0.1:2002` | کاربر به ایران:`443` وصل شود، تونل به `127.0.0.1:2002` کانتینر برساند |
+| `443=127.0.0.1:2002, 8443=127.0.0.1:2003` | چند inbound با یک تونل |
+| `443=127.0.0.1:2002\|127.0.0.1:2003` | دو backend با بالانس و health check |
 | `10000-10009` | بازه؛ هر پورت به همان پورت |
 
-> **`443` تنها یعنی «هر پورتی» نیست.** یعنی باید چیزی واقعاً روی `127.0.0.1:443` داخل کانتینر گوش بدهد. اگر inbound روی `2096` است، بنویس `443=127.0.0.1:2096`.
+> **`443` تنها یعنی «هر پورتی» نیست.** یعنی باید چیزی واقعاً روی `127.0.0.1:443` داخل کانتینر گوش بدهد. اگر inbound روی `2002` است، بنویس `443=127.0.0.1:2002`.
 
-- پورت inbound نباید `2053` (3x-ui) یا `7777` (پنل BackPack) باشد.
+- پورت inbound نباید `2053` (پنل 3x-ui)، `2096` (سرور subscription در 3x-ui) یا `7777` (پنل BackPack) باشد.
 - اگر inbound به **UDP** نیاز دارد: در ایران `Manage ← Edit ← Forward UDP` را روشن کن و `ufw allow <port>/udp` را بزن.
 - برای **آی‌پی واقعی کاربر**: اول در inbound گزینهٔ **Accept Proxy Protocol** را روشن کن، بعد در ایران `Manage ← Edit ← Real client IP`. ترتیب برعکس همهٔ اتصال‌ها را خراب می‌کند.
 - پورت پنل ادمین (2053) را تونل نکن.
@@ -239,6 +240,91 @@ BackPack را هم هر بار که build شود، آخرین ریلیز رسم�
 | تنظیمات داخل پنل BackPack (2FA، تلگرام) | پاک می‌شود |
 
 برای نگه داشتن inboundها: روی بوم پروژه در Railway راست‌کلیک کن ← **Volume** (یا `Ctrl+K` و جستجوی Volume)، آن را به سرویس وصل کن و **Mount Path** را `/etc/x-ui` بگذار. فقط همین مسیر پیشنهاد می‌شود؛ Volume روی `/etc/backpack` آزمایش نشده است.
+
+---
+
+## Fly.io و Blitz.cloud
+
+روی Railway لازم نیست کاری بکنی. روی پلتفرم‌های دیگر ممکن است تونل قطع شود، چون پلتفرم برنامه را متوقف می‌کند یا قوانینش این نوع برنامه را اجازه نمی‌دهد.
+
+### Fly.io
+
+Fly ماشینی را که ترافیک وبِ ورودی نداشته باشد متوقف می‌کند و در اولین دیپلوی به‌طور پیش‌فرض **دو ماشین** می‌سازد. هر دو برای این پروژه مضرند: تونل فقط خروجی می‌زند و Fly برنامه را بی‌ترافیک می‌بیند؛ و دو ماشین با یک `TUNNEL_LINK` تونل را از هم می‌گیرند، آن هم هر کدام با دیتابیس خالی 3x-ui خودش. فایل `fly.toml` این مخزن هر دو را خاموش می‌کند (بدون توقف خودکار، یک ماشین، ۵۱۲ مگابایت، Volume روی `/etc/x-ui`) و `fly-deploy.sh` کل دیپلوی را برایت انجام می‌دهد.
+
+#### خودکار: GitHub Actions (پیشنهادی)
+
+**۱.** این مخزن را **Fork** کن و در Fork خودت Actions را فعال کن (تب **Actions** و بعد *I understand my workflows, go ahead and enable them*).
+
+**۲.** یک توکن Fly.io بساز که اجازهٔ ساختن app داشته باشد. روی کامپیوترت، بعد از نصب [flyctl](https://fly.io/docs/flyctl/install/) و `fly auth login`:
+
+</div>
+
+```bash
+fly tokens create org -o personal -x 8760h
+```
+
+<div dir="rtl">
+
+**کل** خروجی را کپی کن. این توکن همهٔ چیزهای آن سازمان Fly را مدیریت می‌کند؛ پس فقط در Secrets همین مخزن نگهش دار.
+
+**۳.** در Fork خودت **Settings ← Secrets and variables ← Actions ← New repository secret** را باز کن و این‌ها را اضافه کن:
+
+| Secret | مقدار |
+|---|---|
+| `FLY_API_TOKEN` | توکن قدم ۲ |
+| `TUNNEL_LINK` | Setup Link تونل BackPack |
+| `PANEL_PATH` | یک مسیر محرمانه برای پنل BackPack |
+| `PANEL_PASSWORD` | یک رمز قوی |
+
+**۴.** **Actions ← Deploy to Fly.io ← Run workflow** را بزن. app (با نام `backpack-<نام-GitHub-تو>`) و Volume را می‌سازد، secrets را می‌گذارد، یک ماشین دیپلوی می‌کند و چک می‌کند یکی بماند. آخر لاگ آدرس‌ها را نشان می‌دهد.
+
+**Variables** اختیاری (تب *Variables* همان صفحه): `FLY_APP_NAME` (نام app؛ باید در Fly یکتا باشد)، `FLY_REGION` (پیش‌فرض `fra`)، `FLY_ORG` (پیش‌فرض `personal`)، `TUNNEL_NAME`، `TUNNEL_HOST`، `BACKPACK_VERSION`، و `FLY_AUTODEPLOY` = `true` برای دیپلوی دوباره با هر push. بعد از **Sync fork** هم workflow را دوباره اجرا کن (یا از `FLY_AUTODEPLOY` استفاده کن).
+
+#### از روی کامپیوتر خودت
+
+</div>
+
+```bash
+export TUNNEL_LINK='backpack://...' PANEL_PATH='k7Hq2mVx9TnPaw' PANEL_PASSWORD='choose-a-strong-password'
+export FLY_APP_NAME=my-unique-app-name      # حروف کوچک انگلیسی، عدد، خط تیره
+fly auth login
+bash fly-deploy.sh
+```
+
+<div dir="rtl">
+
+اجرای دوباره فقط دیپلوی را تکرار می‌کند.
+
+#### بعد از دیپلوی
+
+- آدرس عمومی `https://<app>.fly.dev/<PANEL_PATH>/` پنل BackPack را نشان می‌دهد.
+- 3x-ui عمومی نیست. `fly proxy 2053:2053 -a <app>` را بزن و `http://localhost:2053/` را باز کن. اگر می‌خواهی عمومی باشد، `internal_port` را در `fly.toml` روی `2053` بگذار.
+- اسکریپت تعداد ماشین‌ها را خودش چک می‌کند. اگر در `fly machine list` دو ماشین دیدی، `fly scale count 1` را اجرا کن.
+- اگر قبلاً appی با دو ماشین و بدون Volume داری، تمیزترین راه `fly apps destroy <app>` و اجرای دوبارهٔ workflow است. چیزی از دست نمی‌رود که دیپلوی بعدی هم پاکش نکند.
+
+<details>
+<summary>انجام دستی</summary>
+
+روی خط `app` در `fly.toml` نام یکتای خودت را بگذار، بعد:
+
+</div>
+
+```bash
+fly apps create <نام-برنامه-شما>                    # همان نام خط app در fly.toml
+fly volumes create xui_data --size 1 --region fra    # همان region فایل fly.toml
+fly secrets set TUNNEL_LINK='backpack://...' PANEL_PATH='k7Hq2mVx9TnPaw' PANEL_PASSWORD='choose-a-strong-password'
+fly deploy --ha=false
+fly machine list                                     # باید دقیقاً یک ماشین نشان بدهد
+```
+
+<div dir="rtl">
+
+</details>
+
+### Blitz.cloud
+
+**برای این پروژه از blitz.cloud استفاده نکن.** [قوانین](https://blitz.cloud/terms/) آن (بخش ۸، به‌روزشده در ۱۶ نوامبر ۲۰۲۶) اجرای «VPN، پروکسی یا تونلی که ترافیک اینترنت را عبور می‌دهد، مثل Xray، V2Ray یا sing-box» را ممنوع کرده و تشخیص خودکارشان برنامه‌ای را که چنین ابزاری داشته باشد، بدون بررسی انسانی، فوراً متوقف می‌کند. پلن پولی هم این را عوض نمی‌کند. اگر برنامه‌ای آنجا مدام از دسترس خارج شد، ایمیلی را که blitz.cloud هنگام متوقف کردن می‌فرستد پیدا کن.
+
 
 ---
 
