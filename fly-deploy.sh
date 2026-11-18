@@ -136,9 +136,16 @@ else
     say "NOTE: python3 not found, could not count machines. Check: fly machine list -a $APP (it must show ONE)."
 fi
 
+# Which panel the public address shows depends on internal_port in fly.toml (7777 or 2053).
+PORT=$(sed -n 's/^[[:space:]]*internal_port[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' fly.toml | head -n 1)
 say ""
 say "Done."
-say "  BackPack panel : https://$APP.fly.dev/<PANEL_PATH>/"
-say "  3x-ui panel    : not public. Run  fly proxy 2053:2053 -a $APP  and open http://localhost:2053/"
-say "                   (first login: admin / admin - change it at once)"
+if [ "$PORT" = 2053 ]; then
+    say "  3x-ui panel    : https://$APP.fly.dev/   (first login: admin / admin - change it at once)"
+    say "  BackPack panel : not public. Run  fly proxy 7777:7777 -a $APP  and open http://localhost:7777/<PANEL_PATH>/"
+else
+    say "  BackPack panel : https://$APP.fly.dev/<PANEL_PATH>/"
+    say "  3x-ui panel    : not public. Run  fly proxy 2053:2053 -a $APP  and open http://localhost:2053/"
+    say "                   (first login: admin / admin - change it at once)"
+fi
 say "  Logs           : fly logs -a $APP"
