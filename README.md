@@ -238,7 +238,7 @@ Fly stops a machine that receives no incoming web traffic, and a first deploy cr
 
 4. Open **Actions → Deploy to Fly.io → Run workflow**. It creates the app (`backpack-<your GitHub name>`) and the volume, sets the secrets, deploys one machine and checks that it stays one. The end of the log shows your addresses.
 
-Optional **variables** (the *Variables* tab of the same page): `FLY_APP_NAME` (the app name; it must be unique on Fly.io), `FLY_REGION` (default `fra`), `FLY_ORG` (default `personal`), `TUNNEL_NAME`, `TUNNEL_HOST`, `BACKPACK_VERSION`, and `FLY_AUTODEPLOY` = `true` to redeploy on every push. After **Sync fork**, run the workflow again (or use `FLY_AUTODEPLOY`).
+Optional **variables** (the *Variables* tab of the same page): `FLY_APP_NAME` (the app name; it must be unique on Fly.io), `FLY_REGION` (default `fra`; if the app already exists, the region of its machine is used, and a different value stops the script with an explanation, because a volume only works in its machine's region), `FLY_ORG` (default `personal`), `TUNNEL_NAME`, `TUNNEL_HOST`, `BACKPACK_VERSION`, and `FLY_AUTODEPLOY` = `true` to redeploy on every push. After **Sync fork**, run the workflow again (or use `FLY_AUTODEPLOY`).
 
 #### From your computer
 

@@ -278,7 +278,7 @@ fly tokens create org -o personal -x 8760h
 
 **۴.** **Actions ← Deploy to Fly.io ← Run workflow** را بزن. app (با نام `backpack-<نام-GitHub-تو>`) و Volume را می‌سازد، secrets را می‌گذارد، یک ماشین دیپلوی می‌کند و چک می‌کند یکی بماند. آخر لاگ آدرس‌ها را نشان می‌دهد.
 
-**Variables** اختیاری (تب *Variables* همان صفحه): `FLY_APP_NAME` (نام app؛ باید در Fly یکتا باشد)، `FLY_REGION` (پیش‌فرض `fra`)، `FLY_ORG` (پیش‌فرض `personal`)، `TUNNEL_NAME`، `TUNNEL_HOST`، `BACKPACK_VERSION`، و `FLY_AUTODEPLOY` = `true` برای دیپلوی دوباره با هر push. بعد از **Sync fork** هم workflow را دوباره اجرا کن (یا از `FLY_AUTODEPLOY` استفاده کن).
+**Variables** اختیاری (تب *Variables* همان صفحه): `FLY_APP_NAME` (نام app؛ باید در Fly یکتا باشد)، `FLY_REGION` (پیش‌فرض `fra`؛ اگر app از قبل وجود داشته باشد، region ماشین همان استفاده می‌شود و مقدار متفاوت اسکریپت را با توضیح متوقف می‌کند، چون Volume فقط در region همان ماشین کار می‌کند)، `FLY_ORG` (پیش‌فرض `personal`)، `TUNNEL_NAME`، `TUNNEL_HOST`، `BACKPACK_VERSION`، و `FLY_AUTODEPLOY` = `true` برای دیپلوی دوباره با هر push. بعد از **Sync fork** هم workflow را دوباره اجرا کن (یا از `FLY_AUTODEPLOY` استفاده کن).
 
 #### از روی کامپیوتر خودت
 

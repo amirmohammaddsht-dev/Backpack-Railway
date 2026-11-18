@@ -17,7 +17,7 @@
 #   BACKPACK_VERSION  optional: BackPack version to build in, e.g. v1.8.5 (default: latest)
 #   FLY_APP_NAME      app name: lowercase letters, digits and dashes, unique on all of Fly.io
 #                     (in GitHub Actions the default is backpack-<repository owner>)
-#   FLY_REGION        Fly region code (default: fra)
+#   FLY_REGION        Fly region code (default: fra; an app that already has machines keeps their region)
 #   FLY_ORG           organization the app is created in (default: personal)
 
 set -euo pipefail
@@ -45,6 +45,8 @@ printf '%s' "$APP" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$' \
 
 REGION=${FLY_REGION:-fra}
 printf '%s' "$REGION" | grep -Eq '^[a-z]{3}$' || die "Region '$REGION' is not a Fly region code (three letters, e.g. fra)."
+REGION_GIVEN=no
+if [ -n "${FLY_REGION:-}" ]; then REGION_GIVEN=yes; fi
 ORG=${FLY_ORG:-personal}
 
 say "App: $APP   region: $REGION   organization: $ORG"
@@ -56,6 +58,29 @@ else
     say "Creating app $APP ..."
     "$FLY" apps create "$APP" --org "$ORG" \
         || die "Could not create the app. The name may already be taken on Fly.io (try another FLY_APP_NAME), or the token cannot create apps: use an organization token (fly tokens create org)."
+fi
+
+# --- region of the machines the app already has ---------------------------------------------------
+# A volume only works in the same region as its machine. For an app that already exists (say it
+# was created by `fly launch` in iad), follow its machines instead of the default region.
+machine_regions() {
+    "$FLY" machines list --app "$APP" --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    print(" ".join(sorted({m["region"] for m in json.load(sys.stdin) if m.get("region")})))
+except Exception:
+    pass' 2>/dev/null || true
+}
+if command -v python3 >/dev/null 2>&1; then
+    existing=$(machine_regions)
+    if [ -n "$existing" ]; then
+        if [ "$REGION_GIVEN" = no ]; then
+            REGION=${existing%% *}
+            say "The app already has a machine in $existing; using region $REGION for the volume."
+        elif ! grep -qw "$REGION" <<<"$existing"; then
+            die "The app $APP already has a machine in region: $existing, but FLY_REGION is $REGION. The volume must be in the same region as the machine. Either set FLY_REGION to ${existing%% *} (or leave it empty), or remove the old machine first:  fly machine list -a $APP   then   fly machine destroy <id> --force -a $APP"
+        fi
+    fi
 fi
 
 # --- 2. the volume that keeps the 3x-ui database --------------------------------------------------
