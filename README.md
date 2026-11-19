@@ -2,12 +2,18 @@
 
 # Backpack-Railway
 
-Run the **BackPack** tunnel and the **3x-ui** panel on **Railway** in a few clicks: **fork** this project, deploy your fork on Railway, and put your tunnel's setup link in one variable. That's it.
+Run the **BackPack** tunnel and the **3x-ui** panel on **Railway** or **Fly.io** in a few clicks: **fork** this project, deploy your fork, and put your tunnel's setup link in one variable. That's it.
 
 > Based on BackPack by Amin Mohammadi (AminMGMT)
 > https://github.com/AminMGMT/BackPack
 
 This repository is **unofficial** and is not BackPack itself: at build time it only downloads the official BackPack release binary and verifies its checksum. 3x-ui comes from the official `ghcr.io/mhsanaei/3x-ui` image. See [License and credits](#license-and-credits).
+
+| Platform | Status | Start here |
+|---|---|---|
+| **Railway** | Works out of the box | [Install in 5 steps](#install-in-5-steps) |
+| **Fly.io** | Works with the included GitHub Action or `fly-deploy.sh` | [Fly.io](#flyio) |
+| **Blitz.cloud** | Not allowed by its terms | [Blitz.cloud](#blitzcloud) |
 
 ## Contents
 
@@ -27,7 +33,7 @@ This repository is **unofficial** and is not BackPack itself: at build time it o
 
 ## What does this project do?
 
-BackPack is a tunnel between an **Iran server** and a **foreign (kharej) server**. Here the foreign server is this Railway container. You create the tunnel on the Iran server, copy its **Setup Link** (`backpack://…`), and hand it to Railway. The container then connects to Iran by itself and keeps the tunnel up. Because the container is the one that opens the connection, Railway does not have to expose any port for the tunnel.
+BackPack is a tunnel between an **Iran server** and a **foreign (kharej) server**. Here the foreign server is this container, running on Railway or Fly.io. You create the tunnel on the Iran server, copy its **Setup Link** (`backpack://…`), and hand it to the platform. The container then connects to Iran by itself and keeps the tunnel up. Because the container is the one that opens the connection, the platform does not have to expose any port for the tunnel.
 
 Four things run inside the container:
 
@@ -41,14 +47,16 @@ Four things run inside the container:
 ```text
  User ─▶ Iran server :443
                ▲
-               ║  BackPack tunnel — the Railway container dials OUT to Iran
+               ║  BackPack tunnel — the container (Railway / Fly.io) dials OUT to Iran
                ▼
- Railway container ─▶ 127.0.0.1:<port> ─▶ x-ui inbound
+ Container ─▶ 127.0.0.1:<port> ─▶ x-ui inbound
 ```
 
 ---
 
 ## Install in 5 steps
+
+> This is the Railway route. On Fly.io follow [Fly.io](#flyio) instead.
 
 1. **Fork** this repository.
 2. On the **Iran server**, create the tunnel and copy its **Setup Link**.
@@ -151,11 +159,13 @@ When this repository changes, open your fork on GitHub and click **Sync fork →
 
 Each build also fetches the latest official BackPack release. To stay on one version, add `BACKPACK_VERSION=v1.8.5` to Variables (the version this project was tested with). If Railway does not pass that variable to the build, change the default of `ARG BACKPACK_VERSION` in your fork's `Dockerfile` instead.
 
+On Fly.io, after **Sync fork** run the *Deploy to Fly.io* workflow again (or set `FLY_AUTODEPLOY`); see [Fly.io](#flyio).
+
 ---
 
 ## Variables
 
-All of them are set in **Railway → Variables**.
+Set them in **Railway → Variables**. On Fly.io, `TUNNEL_*` and `PANEL_PATH` / `PANEL_PASSWORD` are Fly secrets (the GitHub Action and `fly-deploy.sh` set them for you), `BACKPACK_VERSION` is a build argument, and `PANEL_PORT` must match `internal_port` in `fly.toml`.
 
 | Variable | Required? | Default | Description |
 |---|---|---|---|
@@ -164,12 +174,12 @@ All of them are set in **Railway → Variables**.
 | `TUNNEL_HOST` | No | empty | Iran server address; only needed if the link does not carry it |
 | `PANEL_PATH` | Recommended | random | Secret path of the BackPack panel, 8–64 characters from `A-Z a-z 0-9 _ -` |
 | `PANEL_PASSWORD` | Recommended | random | BackPack panel password, 8–128 characters |
-| `PANEL_PORT` | No | `7777` | Port of the BackPack panel. The domain's Target Port must match |
+| `PANEL_PORT` | No | `7777` | Port of the BackPack panel. The Railway domain's Target Port (or `internal_port` in `fly.toml`) must match |
 | `BACKPACK_VERSION` | No | `latest` | BackPack version used at build time, e.g. `v1.8.5` |
 
 - An invalid `PANEL_*` value is ignored and the reason is printed in the log.
-- If you leave `PANEL_PATH` or `PANEL_PASSWORD` unset, a **new value is generated on every deploy** and printed once in the log (between two `=====` lines).
-- Every deploy starts with a fresh container filesystem and rebuilds the tunnel from `TUNNEL_LINK`. If you change something on the Iran server (ports, transport), get a new link from `Manage → Setup Link`, put it in `TUNNEL_LINK` and deploy again.
+- If you leave `PANEL_PATH` or `PANEL_PASSWORD` unset, a **new value is generated on every deploy or restart** and printed once in the log (on Fly.io: `fly logs`), between two `=====` lines.
+- Every deploy (and every restart) starts with a fresh container filesystem and rebuilds the tunnel from `TUNNEL_LINK`. If you change something on the Iran server (ports, transport), get a new link from `Manage → Setup Link`, put it in `TUNNEL_LINK` and deploy again (on Fly.io: `fly secrets set TUNNEL_LINK='backpack://...' -a <app>`, which redeploys the machine so the new value takes effect).
 
 ---
 
@@ -206,6 +216,10 @@ The Railway container's filesystem is rebuilt on every deploy:
 | Settings made inside the BackPack panel (2FA, Telegram) | Wiped |
 
 To keep your inbounds: right-click the project canvas in Railway → **Volume** (or press `Ctrl+K` and search for Volume), attach it to the service, and set the **Mount Path** to `/etc/x-ui`. Only that path is recommended; a Volume on `/etc/backpack` has not been tested.
+
+On **Fly.io** it is the same, and worse: the filesystem is also reset every time the machine restarts or is stopped, not only on deploys. The `fly.toml` in this repository mounts a Fly volume named `xui_data` on `/etc/x-ui`, and `fly-deploy.sh` creates it for you (in the region of the machine). Without that volume the 3x-ui database is lost at every restart and the panel goes back to `admin` / `admin`.
+
+On every platform, `entrypoint.sh` sets the 3x-ui panel port back to `2053` at each start; the rest of what is in the volume (users, inbounds, admin password) is kept.
 
 ---
 
@@ -254,7 +268,8 @@ Running it again just redeploys.
 #### Afterwards
 
 - The public address `https://<app>.fly.dev/<PANEL_PATH>/` shows the BackPack panel.
-- 3x-ui is not public. Run `fly proxy 2053:2053 -a <app>` and open `http://localhost:2053/`. To expose it instead, change `internal_port` to `2053` in `fly.toml`.
+- 3x-ui is not public. Run `fly proxy 2053:2053 -a <app>` and open `http://localhost:2053/`. To expose it instead, change `internal_port` to `2053` in `fly.toml`; then change the first-login `admin` / `admin` at once, and open the BackPack panel with `fly proxy 7777:7777 -a <app>`.
+- Fly's own **Launch from GitHub** page writes a separate `fly.toml` into a new branch (`flyio-new-files`) that can change the region and the `internal_port`. Do not merge that branch; use the workflow or `fly-deploy.sh`.
 - The script checks the machine count for you. If you ever see two machines in `fly machine list`, run `fly scale count 1`.
 - If you already have an app with two machines and no volume, the cleanest fix is `fly apps destroy <app>` and then running the workflow again. Nothing is lost that a redeploy would not have wiped anyway.
 
@@ -282,11 +297,11 @@ fly machine list                                     # must show exactly ONE mac
 
 ## Security
 
-- **Change the 3x-ui password right away** (first boot is `admin` / `admin`). The Railway domain is public and gets scanned. You can also change the panel's Web Base Path in 3x-ui's settings.
-- **Keep `TUNNEL_LINK` only in Railway Variables** — not in your fork, a chat, an issue or a log. Anyone who has it can connect to your Iran server in your place. If it leaks, change the token on the Iran server and get a new link.
+- **Change the 3x-ui password right away** (first boot is `admin` / `admin`). The Railway domain is public and gets scanned (on Fly.io only if you published 3x-ui). You can also change the panel's Web Base Path in 3x-ui's settings.
+- **Keep `TUNNEL_LINK` only in Railway Variables or in Fly / GitHub secrets** — not in your fork, a chat, an issue or a log. Anyone who has it can connect to your Iran server in your place. If it leaks, change the token on the Iran server and get a new link.
 - The BackPack panel **lives under a secret path and everything outside it returns `404`.** Pick `PANEL_PATH` as randomly and as long as a password. Under **Settings → Security** you can also turn on two-factor sign-in.
-- After 5 wrong passwords, sign-in is blocked for 10 minutes. Behind Railway's proxy all visitors share one IP address, so a few failed attempts can lock everyone out for a while.
-- Do **not** turn on the **HTTPS** option in the BackPack panel's settings; the panel serves plain HTTP and Railway provides the TLS.
+- After 5 wrong passwords, sign-in is blocked for 10 minutes. Behind a platform proxy (Railway, Fly.io) all visitors can appear to come from one IP address, so a few failed attempts can lock everyone out for a while.
+- Do **not** turn on the **HTTPS** option in the BackPack panel's settings; the panel serves plain HTTP and Railway or Fly.io provides the TLS.
 
 ---
 
@@ -297,7 +312,7 @@ fly machine list                                     # must show exactly ONE mac
 | The Railway address returns `404` without a path | Normal. Open `https://<domain>/<PANEL_PATH>/` |
 | `502` or "Application failed to respond" | Set the domain's Target Port to `7777` (BackPack panel) or `2053` (3x-ui); keep the BackPack panel's HTTPS off; check the logs |
 | The 3x-ui login page shows instead of the BackPack panel | Target Port is `2053`; set it to `7777` |
-| I don't know the panel path or password | Set `PANEL_PATH` and `PANEL_PASSWORD` in Variables and deploy again |
+| I don't know the panel path or password | Set `PANEL_PATH` and `PANEL_PASSWORD` in Variables (Railway) or with `fly secrets set` (Fly.io) and deploy again. If they are not set, the generated ones are printed once in the log |
 | "too many failed attempts" | Sign-in lockout; wait 10 minutes |
 | `PANEL_PATH ignored` or `PANEL_PASSWORD ignored` | The value is invalid; fix its length and characters as in [Variables](#variables) |
 | `TUNNEL_LINK is not set` | The variable is empty |
@@ -306,6 +321,12 @@ fly machine list                                     # must show exactly ONE mac
 | `nothing is listening on 127.0.0.1:<port> on THIS server` | The tunnel is fine but there is no inbound. Create an inbound on that port in 3x-ui, or change the forwarded ports on the Iran server (`Manage → Edit → Change forwarded ports`) and update `TUNNEL_LINK` |
 | The tunnel is connected but clients can't connect | The inbound port is wrong, UDP is needed but off, or the Iran firewall is closed (see [Port forwarding](#port-forwarding)) |
 | Inbounds vanished after a deploy | No Volume (see [Persistence](#persistence)) |
+| `Creating new database with admin/admin` in the log after a restart | The 3x-ui database was not on a persistent volume (see [Persistence](#persistence)) |
+| `securecookie: the value is not valid` in the 3x-ui log, and you keep getting logged out | The browser holds a login cookie signed by an older 3x-ui database. It happens when the database was lost or two machines are running (Fly.io): make sure there is exactly one machine and the `xui_data` volume, then clear the site's cookies and sign in again |
+| `autostopping machine … excess capacity` in `fly logs` | Fly stopped an idle machine: the app was not deployed with this repository's `fly.toml` (`auto_stop_machines` must be `"off"`). Redeploy with the workflow or `fly-deploy.sh` |
+| `needs volumes with name 'xui_data'` when deploying | There is no `xui_data` volume in the machine's region: `fly volumes create xui_data --region <region shown by fly machine list> --size 1 -a <app>` |
+| Fly.io shows two machines | `fly scale count 1 -a <app>` (the script does this itself) |
+| The tunnel keeps dropping and reconnecting | Only one container may use a given `TUNNEL_LINK`; a second one takes the connection from the first. Railway: Replicas = 1; Fly.io: one machine; stop any old deployment still running elsewhere |
 | `sysctl` warnings in the tunnel log | Harmless; the container may not change kernel parameters |
 
 ---
@@ -318,12 +339,16 @@ fly machine list                                     # must show exactly ONE mac
 | File | Role |
 |---|---|
 | `Dockerfile` | Starts from the 3x-ui image, installs `supervisor bash curl gawk`, downloads the BackPack binary, verifies it with `SHA256SUMS`, installs it at `/usr/local/bin/backpack`, and copies the scripts |
-| `entrypoint.sh` | Prepares the 3x-ui database and port `2053`, runs `panel-config.sh`, then `exec supervisord` |
+| `entrypoint.sh` | Prepares the 3x-ui database and port `2053` (set again at every start), runs `panel-config.sh`, then `exec supervisord` |
 | `supervisord.conf` | Programs: `x-ui`, `backpack-webui`, `backpack-monitor`, and `tunnel-setup` (one-shot) |
 | `panel-config.sh` | Writes `/etc/backpack/webui.json` from `PANEL_*` (atomically, mode `0600`) and generates random values when they are missing |
 | `apply-link.sh` | Runs `backpack link apply` with `TUNNEL_LINK` (and `TUNNEL_NAME`, `TUNNEL_HOST`). Exit code `4` ("created but not connected yet") counts as success |
 | `fake_systemctl.sh` | Stand-in for `systemctl` in a container without systemd |
 | `fake_journalctl.sh` | Stand-in for `journalctl`; reads logs from `/var/log` so the panel's Logs page works |
+| `fly.toml` | Fly.io settings: one machine, no auto-stop, a volume on `/etc/x-ui`. Railway ignores it |
+| `fly-deploy.sh` | One-command Fly.io deployment (app, volume, secrets, deploy, one-machine check); run by the workflow or by hand |
+| `.github/workflows/fly-deploy.yml` | The *Deploy to Fly.io* GitHub Action; it runs `fly-deploy.sh` |
+| `.dockerignore` | Keeps the docs and the Fly files out of the image |
 
 </details>
 
@@ -338,7 +363,7 @@ BackPack manages its services with `systemctl` and `journalctl`, and the contain
 - `disable --now` on a tunnel being deleted also removes its program file, so it does not come back on the next boot.
 - Logs are size-capped (1 MB per file) and `systemctl` calls are recorded in `/var/log/fake_systemctl.log`.
 
-If you have a shell in the container (`railway ssh`):
+If you have a shell in the container (`railway ssh`, or `fly ssh console -a <app>` on Fly.io):
 
 ```bash
 supervisorctl status
@@ -377,8 +402,9 @@ Then `http://localhost:7777/k7Hq2mVx9TnPaw/` is the BackPack panel and `http://l
 <summary>Limitations</summary>
 
 - **No systemd.** Anything that relies on systemd timers, cron, `ufw` or `iptables` does not work or has no effect inside the container — for example PCK and "restart every N hours" (set that to `0`).
-- **The filesystem is ephemeral.** Only what is in Variables or on a Volume survives.
-- **One domain and one Target Port** per service, so only one of the two panels is reachable from outside at a time. If your Railway project offers a TCP Proxy, the second port can be exposed as well, but that path has no TLS and is not recommended for an admin panel.
+- **The filesystem is ephemeral** (on Fly.io across restarts too). Only what is in Variables / secrets or on a Volume survives.
+- **The 3x-ui panel port is fixed at `2053`.** It is set again at every start.
+- **One domain and one Target Port** per service (on Fly.io: one `internal_port` in `fly.toml`), so only one of the two panels is reachable from outside at a time. If your Railway project offers a TCP Proxy, the second port can be exposed as well, but that path has no TLS and is not recommended for an admin panel.
 - The BackPack panel was written mainly for the Iran server; here it runs on the foreign side and is useful for watching this tunnel's status and logs.
 - A KCP tunnel has connected from Railway to an Iran server, but not every BackPack transport and feature has been tried in this container.
 
