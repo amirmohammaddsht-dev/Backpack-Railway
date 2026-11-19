@@ -17,6 +17,7 @@ This repository is **unofficial** and is not BackPack itself: at build time it o
 - [Variables](#variables)
 - [Port forwarding](#port-forwarding)
 - [Persistence](#persistence)
+- [Fly.io and Blitz.cloud](#flyio-and-blitzcloud)
 - [Security](#security)
 - [Troubleshooting](#troubleshooting)
 - [Technical details](#technical-details)
@@ -83,7 +84,7 @@ and follow this path (accept the defaults for everything else):
 → Transport            start with TCP or TCP Mux
 → Iran IP Or Domain    the address Railway must connect to
 → Tunnel Port          e.g. 3002
-→ Forwarded Ports      e.g. 443=127.0.0.1:2096   (see "Port forwarding")
+→ Forwarded Ports      e.g. 443=127.0.0.1:2002   (see "Port forwarding")
 → Tunnel Name
 → Security Token       generated for you; press Enter
 → How Should The Tunnel Be Tuned?   Turbo
@@ -139,7 +140,7 @@ If the last line is this instead, it is not an error: the tunnel was built and k
 Now:
 
 - **BackPack panel:** open `https://<your-railway-domain>/<PANEL_PATH>/` and sign in with `PANEL_PASSWORD`. (The address without the path deliberately returns `404`.)
-- **3x-ui:** temporarily set the domain's Target Port to `2053` and open `https://<your-railway-domain>/`. The first time, both username and password are `admin`; **change them immediately.** Create an **inbound whose port is exactly the one you put in the Iran server's Forwarded Ports** (`2096` in the example). The tunnel delivers traffic to `127.0.0.1:2096` inside the container, and if nothing listens there the log says `nothing is listening on 127.0.0.1:2096 on THIS server`.
+- **3x-ui:** temporarily set the domain's Target Port to `2053` and open `https://<your-railway-domain>/`. The first time, both username and password are `admin`; **change them immediately.** Create an **inbound whose port is exactly the one you put in the Iran server's Forwarded Ports** (`2002` in the example). The tunnel delivers traffic to `127.0.0.1:2002` inside the container, and if nothing listens there the log says `nothing is listening on 127.0.0.1:2002 on THIS server`.
 - **Clients:** in the user's client config, use the **Iran server's IP** and the **public port** (e.g. `443`), not the Railway address.
 
 ---
@@ -178,14 +179,14 @@ On the Iran server, **Forwarded Ports** decides which public port goes to which 
 
 | Entry | Meaning |
 |---|---|
-| `443=127.0.0.1:2096` | Users connect to Iran:`443`; the tunnel delivers to `127.0.0.1:2096` in the container |
-| `443=127.0.0.1:2096, 8443=127.0.0.1:2097` | Several inbounds over one tunnel |
-| `443=127.0.0.1:2096\|127.0.0.1:2097` | Two backends, balanced and health-checked |
+| `443=127.0.0.1:2002` | Users connect to Iran:`443`; the tunnel delivers to `127.0.0.1:2002` in the container |
+| `443=127.0.0.1:2002, 8443=127.0.0.1:2003` | Several inbounds over one tunnel |
+| `443=127.0.0.1:2002\|127.0.0.1:2003` | Two backends, balanced and health-checked |
 | `10000-10009` | A range; each port to the same port |
 
-> **A bare `443` does not mean "any port".** It means something must really listen on `127.0.0.1:443` inside the container. If your inbound is on `2096`, write `443=127.0.0.1:2096`.
+> **A bare `443` does not mean "any port".** It means something must really listen on `127.0.0.1:443` inside the container. If your inbound is on `2002`, write `443=127.0.0.1:2002`.
 
-- An inbound's port must not be `2053` (3x-ui) or `7777` (BackPack panel).
+- An inbound's port must not be `2053` (3x-ui panel), `2096` (3x-ui subscription server) or `7777` (BackPack panel).
 - If an inbound needs **UDP**: on the Iran server turn on `Manage → Edit → Forward UDP` and run `ufw allow <port>/udp`.
 - For the **real client IP**: first turn on **Accept Proxy Protocol** in the inbound, then `Manage → Edit → Real client IP` on the Iran server. The reverse order breaks every connection.
 - Do not tunnel the admin panel port (2053).
@@ -205,6 +206,77 @@ The Railway container's filesystem is rebuilt on every deploy:
 | Settings made inside the BackPack panel (2FA, Telegram) | Wiped |
 
 To keep your inbounds: right-click the project canvas in Railway → **Volume** (or press `Ctrl+K` and search for Volume), attach it to the service, and set the **Mount Path** to `/etc/x-ui`. Only that path is recommended; a Volume on `/etc/backpack` has not been tested.
+
+---
+
+## Fly.io and Blitz.cloud
+
+Railway needs nothing special. On other platforms the tunnel can drop because the platform stops the app, or because its rules do not allow this kind of program.
+
+### Fly.io
+
+Fly stops a machine that receives no incoming web traffic, and a first deploy creates **two machines** by default. Both break this project: the tunnel only dials out, so Fly sees an idle app; and two machines with one `TUNNEL_LINK` take the tunnel away from each other, each with its own empty 3x-ui database. The `fly.toml` in this repository turns both off (no auto-stop, one machine, 512 MB, a volume on `/etc/x-ui`), and `fly-deploy.sh` does the whole deployment for you.
+
+#### Automatic: GitHub Actions (recommended)
+
+1. **Fork** this repository and enable Actions in your fork (the **Actions** tab, then *I understand my workflows, go ahead and enable them*).
+2. Create a Fly.io token that is allowed to create apps. On your computer, with [flyctl](https://fly.io/docs/flyctl/install/) installed and `fly auth login` done:
+
+   ```bash
+   fly tokens create org -o personal -x 8760h
+   ```
+
+   Copy the **whole** output. The token can manage everything in that Fly organization, so keep it only in this repository's secrets.
+3. In your fork open **Settings → Secrets and variables → Actions → New repository secret** and add:
+
+   | Secret | Value |
+   |---|---|
+   | `FLY_API_TOKEN` | the token from step 2 |
+   | `TUNNEL_LINK` | your BackPack Setup Link |
+   | `PANEL_PATH` | a secret path for the BackPack panel |
+   | `PANEL_PASSWORD` | a strong password |
+
+4. Open **Actions → Deploy to Fly.io → Run workflow**. It creates the app (`backpack-<your GitHub name>`) and the volume, sets the secrets, deploys one machine and checks that it stays one. The end of the log shows your addresses.
+
+Optional **variables** (the *Variables* tab of the same page): `FLY_APP_NAME` (the app name; it must be unique on Fly.io), `FLY_REGION` (default `fra`; if the app already exists, the region of its machine is used, and a different value stops the script with an explanation, because a volume only works in its machine's region), `FLY_ORG` (default `personal`), `TUNNEL_NAME`, `TUNNEL_HOST`, `BACKPACK_VERSION`, and `FLY_AUTODEPLOY` = `true` to redeploy on every push. After **Sync fork**, run the workflow again (or use `FLY_AUTODEPLOY`).
+
+#### From your computer
+
+```bash
+export TUNNEL_LINK='backpack://...' PANEL_PATH='k7Hq2mVx9TnPaw' PANEL_PASSWORD='choose-a-strong-password'
+export FLY_APP_NAME=my-unique-app-name      # lowercase letters, digits, dashes
+fly auth login
+bash fly-deploy.sh
+```
+
+Running it again just redeploys.
+
+#### Afterwards
+
+- The public address `https://<app>.fly.dev/<PANEL_PATH>/` shows the BackPack panel.
+- 3x-ui is not public. Run `fly proxy 2053:2053 -a <app>` and open `http://localhost:2053/`. To expose it instead, change `internal_port` to `2053` in `fly.toml`.
+- The script checks the machine count for you. If you ever see two machines in `fly machine list`, run `fly scale count 1`.
+- If you already have an app with two machines and no volume, the cleanest fix is `fly apps destroy <app>` and then running the workflow again. Nothing is lost that a redeploy would not have wiped anyway.
+
+<details>
+<summary>Doing it by hand instead</summary>
+
+Put your own unique app name on the `app` line of `fly.toml`, then:
+
+```bash
+fly apps create <your-app-name>                     # the same name as the `app` line in fly.toml
+fly volumes create xui_data --size 1 --region fra    # the region in fly.toml
+fly secrets set TUNNEL_LINK='backpack://...' PANEL_PATH='k7Hq2mVx9TnPaw' PANEL_PASSWORD='choose-a-strong-password'
+fly deploy --ha=false
+fly machine list                                     # must show exactly ONE machine
+```
+
+</details>
+
+### Blitz.cloud
+
+**Do not use blitz.cloud for this.** Its [terms](https://blitz.cloud/terms/) (section 8, updated 16 November 2026) forbid running "a VPN, proxy or tunnel server that forwards internet traffic, such as Xray, V2Ray, sing-box", and an automated check pauses an app that contains such a program, without a person reviewing it first. A paid plan does not change that. If an app keeps going offline there, look for the email blitz.cloud sends when it pauses an app.
+
 
 ---
 

@@ -1,0 +1,57 @@
+# Fly.io settings for Backpack-Railway. Railway ignores this file.
+#
+# Easiest: run the "Deploy to Fly.io" GitHub Action, or `bash fly-deploy.sh` (see the README).
+# Both create the app and the volume, set the secrets and deploy ONE machine, and they use your
+# own app name and region in place of the `app` and `primary_region` lines below.
+#
+# By hand instead: change the app name below (it must be unique across all of Fly.io), then,
+# from the folder that holds this file:
+#
+#   fly apps create <the same name>
+#   fly volumes create xui_data --size 1 --region fra     # same region as primary_region
+#   fly secrets set TUNNEL_LINK='backpack://...' PANEL_PATH='...' PANEL_PASSWORD='...'
+#   fly deploy --ha=false
+#   fly machine list                                      # must show exactly ONE machine
+#
+# Why these settings:
+#   * The tunnel only makes OUTBOUND connections, so Fly sees an app with no incoming
+#     traffic and would stop its machine after a few minutes. auto_stop_machines = "off"
+#     (with auto_start_machines = false) turns that off.
+#   * A first deploy creates two machines by default. Two machines with the same TUNNEL_LINK
+#     take the tunnel away from each other, and each has its own empty 3x-ui database.
+#     --ha=false, plus the volume below, keeps it to one machine.
+#   * 512 MB + 512 MB swap: x-ui, xray and BackPack are tight in the 256 MB default.
+
+app = "CHANGE-ME-unique-app-name"
+primary_region = "fra"            # any Fly region code; keep the volume in the same one
+kill_signal = "SIGTERM"           # supervisord stops x-ui and the tunnel cleanly on SIGTERM
+kill_timeout = 15
+swap_size_mb = 512
+
+[build]
+  dockerfile = "Dockerfile"
+
+# If the container ever exits, bring it back (the default only retries a few times).
+[[restart]]
+  policy = "always"
+
+# The public address shows the BackPack web panel, which answers only under /<PANEL_PATH>/.
+# 3x-ui (port 2053) is deliberately not public; reach it with:  fly proxy 2053:2053
+# (to publish it instead, change internal_port to 2053).
+[http_service]
+  internal_port = 7777
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Keeps the 3x-ui database (inbounds, users, admin password) across deploys.
+[mounts]
+  source = "xui_data"
+  destination = "/etc/x-ui"
+  initial_size = "1gb"
