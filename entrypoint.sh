@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting Initialization for cTunnel-Railway..."
+echo "Starting Initialization for Backpack-Railway..."
 mkdir -p /etc/x-ui /etc/backpack
 
 if [ ! -f "/etc/x-ui/x-ui.db" ]; then
