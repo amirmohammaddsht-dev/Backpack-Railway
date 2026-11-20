@@ -62,8 +62,11 @@ fi
 echo "$LOG Running the connection test from TEST_LINK. It can take several minutes; the Iran server must still have the test open."
 
 # Only the link itself is handed over. BackPack's output is prefixed so that it can be told
-# apart from the other programs in the shared log.
-backpack link apply "backpack://t.$token" </dev/null 2>&1 | sed -u "s/^/$LOG /"
+# apart from the other programs in the shared log (a read loop, because the BusyBox sed of the
+# Alpine image has no -u and would hold the lines back).
+backpack link apply "backpack://t.$token" </dev/null 2>&1 | while IFS= read -r line || [ -n "$line" ]; do
+    printf '%s %s\n' "$LOG" "$line"
+done
 rc=${PIPESTATUS[0]}
 
 case "$rc" in
