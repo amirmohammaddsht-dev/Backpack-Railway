@@ -21,6 +21,7 @@ This repository is **unofficial** and is not BackPack itself: at build time it o
 - [Install in 5 steps](#install-in-5-steps)
 - [Updating your fork](#updating-your-fork)
 - [Variables](#variables)
+- [Testing the connection](#testing-the-connection)
 - [Port forwarding](#port-forwarding)
 - [Persistence](#persistence)
 - [Fly.io and Blitz.cloud](#flyio-and-blitzcloud)
@@ -165,11 +166,12 @@ On Fly.io, after **Sync fork** run the *Deploy to Fly.io* workflow again (or set
 
 ## Variables
 
-Set them in **Railway → Variables**. On Fly.io, `TUNNEL_*` and `PANEL_PATH` / `PANEL_PASSWORD` are Fly secrets (the GitHub Action and `fly-deploy.sh` set them for you), `BACKPACK_VERSION` is a build argument, and `PANEL_PORT` must match `internal_port` in `fly.toml`.
+Set them in **Railway → Variables**. On Fly.io, `TUNNEL_*`, `TEST_LINK` and `PANEL_PATH` / `PANEL_PASSWORD` are Fly secrets (the GitHub Action and `fly-deploy.sh` set them for you), `BACKPACK_VERSION` is a build argument, and `PANEL_PORT` must match `internal_port` in `fly.toml`.
 
 | Variable | Required? | Default | Description |
 |---|---|---|---|
-| `TUNNEL_LINK` | To build the tunnel | empty | The full Setup Link `backpack://…`. If empty, no tunnel is created. **It contains the tunnel's token; keep it secret.** |
+| `TUNNEL_LINK` | To build the tunnel | empty | The full Setup Link `backpack://…` (the whole `sudo backpack link apply 'backpack://…'` line printed with it works too). If empty, no tunnel is created. **It contains the tunnel's token; keep it secret.** |
+| `TEST_LINK` | No | empty | A Connection Test link `backpack://t.…` (or the whole `sudo backpack link apply 'backpack://t.…'` line). Runs BackPack's Connection Test when the container starts and prints the verdict in the log. See [Testing the connection](#testing-the-connection). Remove it when you are done |
 | `TUNNEL_NAME` | No | name suggested by the link | Overrides the tunnel name |
 | `TUNNEL_HOST` | No | empty | Iran server address; only needed if the link does not carry it |
 | `PANEL_PATH` | Recommended | random | Secret path of the BackPack panel, 8–64 characters from `A-Z a-z 0-9 _ -` |
@@ -180,6 +182,23 @@ Set them in **Railway → Variables**. On Fly.io, `TUNNEL_*` and `PANEL_PATH` / 
 - An invalid `PANEL_*` value is ignored and the reason is printed in the log.
 - If you leave `PANEL_PATH` or `PANEL_PASSWORD` unset, a **new value is generated on every deploy or restart** and printed once in the log (on Fly.io: `fly logs`), between two `=====` lines.
 - Every deploy (and every restart) starts with a fresh container filesystem and rebuilds the tunnel from `TUNNEL_LINK`. If you change something on the Iran server (ports, transport), get a new link from `Manage → Setup Link`, put it in `TUNNEL_LINK` and deploy again (on Fly.io: `fly secrets set TUNNEL_LINK='backpack://...' -a <app>`, which redeploys the machine so the new value takes effect).
+
+---
+
+## Testing the connection
+
+`TEST_LINK` runs BackPack's own **Connection Test** inside the container: it builds a few temporary test tunnels between this container and your Iran server, measures what gets through for several minutes, and prints the verdict in the log. It builds no real tunnel and changes nothing, so you can try it before `TUNNEL_LINK`, or on a host you are not sure about (Railway, Fly.io).
+
+1. On the Iran server run `sudo backpack` and choose **`0) Connection Test`**. **Leave it open**: the link only works while that test runs.
+2. Copy the link it shows (it starts with `backpack://t.`). The whole line `sudo backpack link apply 'backpack://t.…'` is fine too.
+3. Put it in `TEST_LINK` and deploy. Railway: **Variables**. Fly.io: a GitHub secret named `TEST_LINK` and run the workflow again, or `fly secrets set TEST_LINK='backpack://t.…' -a <app>`.
+4. Read the log for lines that start with `[connection-test]` (Fly.io: `fly logs`). The Iran server shows the results of the same test.
+5. When you are done, remove `TEST_LINK`: delete the Railway variable, or on Fly.io run `fly secrets unset TEST_LINK -a <app>` (and delete the GitHub secret).
+
+- A Connection Test link is **not** a Setup Link. A test link in `TUNNEL_LINK`, or a Setup Link in `TEST_LINK`, builds nothing and the log says which one belongs where.
+- The test runs again at every start of the container. If `TEST_LINK` is still set after the test on the Iran server has ended, the log only says that the test did not complete.
+- For a clean measurement, test before the real tunnel exists (leave `TUNNEL_LINK` empty): a tunnel that is already running shares the same connection and can disturb the numbers.
+- The test link carries the test's secret: keep it in Variables or secrets like `TUNNEL_LINK`, and not in your fork.
 
 ---
 
@@ -247,6 +266,7 @@ Fly stops a machine that receives no incoming web traffic, and a first deploy cr
    |---|---|
    | `FLY_API_TOKEN` | the token from step 2 |
    | `TUNNEL_LINK` | your BackPack Setup Link |
+   | `TEST_LINK` | optional: a Connection Test link, see [Testing the connection](#testing-the-connection) |
    | `PANEL_PATH` | a secret path for the BackPack panel |
    | `PANEL_PASSWORD` | a strong password |
 
@@ -298,7 +318,7 @@ fly machine list                                     # must show exactly ONE mac
 ## Security
 
 - **Change the 3x-ui password right away** (first boot is `admin` / `admin`). The Railway domain is public and gets scanned (on Fly.io only if you published 3x-ui). You can also change the panel's Web Base Path in 3x-ui's settings.
-- **Keep `TUNNEL_LINK` only in Railway Variables or in Fly / GitHub secrets** — not in your fork, a chat, an issue or a log. Anyone who has it can connect to your Iran server in your place. If it leaks, change the token on the Iran server and get a new link.
+- **Keep `TUNNEL_LINK` (and `TEST_LINK`) only in Railway Variables or in Fly / GitHub secrets** — not in your fork, a chat, an issue or a log. Anyone who has it can connect to your Iran server in your place. If it leaks, change the token on the Iran server and get a new link.
 - The BackPack panel **lives under a secret path and everything outside it returns `404`.** Pick `PANEL_PATH` as randomly and as long as a password. Under **Settings → Security** you can also turn on two-factor sign-in.
 - After 5 wrong passwords, sign-in is blocked for 10 minutes. Behind a platform proxy (Railway, Fly.io) all visitors can appear to come from one IP address, so a few failed attempts can lock everyone out for a while.
 - Do **not** turn on the **HTTPS** option in the BackPack panel's settings; the panel serves plain HTTP and Railway or Fly.io provides the TLS.
@@ -316,6 +336,9 @@ fly machine list                                     # must show exactly ONE mac
 | "too many failed attempts" | Sign-in lockout; wait 10 minutes |
 | `PANEL_PATH ignored` or `PANEL_PASSWORD ignored` | The value is invalid; fix its length and characters as in [Variables](#variables) |
 | `TUNNEL_LINK is not set` | The variable is empty |
+| `TUNNEL_LINK holds a Connection Test link` | `backpack://t.…` is a test link and builds no tunnel. Put it in `TEST_LINK`, and put the Setup Link from `Manage → Setup Link` in `TUNNEL_LINK` |
+| `TEST_LINK holds a Setup Link` | The other way round: a Setup Link goes in `TUNNEL_LINK`. `TEST_LINK` needs the link of `sudo backpack` → `0) Connection Test` |
+| `The test did not complete` | The test is no longer open on the Iran server, or its link is old or incomplete. Start a new Connection Test there, copy its new link, and look above the message for BackPack's reason (for example that the Iran server's test coordinator never answered: wrong address, or a firewall in between) |
 | `link apply failed (exit N)` | The link is incomplete or damaged. Copy the whole `backpack://…`, or get a fresh one from `Manage → Setup Link` |
 | `Tunnel is running but has not connected yet` | Iran firewall (tunnel port; `udp` for KCP), the tunnel not running on Iran, the address inside the link, or a filtered route. On the Iran server run `Manage → Status` and `Health Check` |
 | `nothing is listening on 127.0.0.1:<port> on THIS server` | The tunnel is fine but there is no inbound. Create an inbound on that port in 3x-ui, or change the forwarded ports on the Iran server (`Manage → Edit → Change forwarded ports`) and update `TUNNEL_LINK` |
@@ -340,9 +363,10 @@ fly machine list                                     # must show exactly ONE mac
 |---|---|
 | `Dockerfile` | Starts from the 3x-ui image, installs `supervisor bash curl gawk`, downloads the BackPack binary, verifies it with `SHA256SUMS`, installs it at `/usr/local/bin/backpack`, and copies the scripts |
 | `entrypoint.sh` | Prepares the 3x-ui database and port `2053` (set again at every start), runs `panel-config.sh`, then `exec supervisord` |
-| `supervisord.conf` | Programs: `x-ui`, `backpack-webui`, `backpack-monitor`, and `tunnel-setup` (one-shot) |
+| `supervisord.conf` | Programs: `x-ui`, `backpack-webui`, `backpack-monitor`, and `tunnel-setup` and `connection-test` (both one-shot) |
 | `panel-config.sh` | Writes `/etc/backpack/webui.json` from `PANEL_*` (atomically, mode `0600`) and generates random values when they are missing |
 | `apply-link.sh` | Runs `backpack link apply` with `TUNNEL_LINK` (and `TUNNEL_NAME`, `TUNNEL_HOST`). Exit code `4` ("created but not connected yet") counts as success |
+| `conn-test.sh` | Runs `backpack link apply` with the Connection Test link from `TEST_LINK` (after checking that it really is one, so a wrong value gets a clear message) and prefixes the output with `[connection-test]`. Without `TEST_LINK` it only says so |
 | `fake_systemctl.sh` | Stand-in for `systemctl` in a container without systemd |
 | `fake_journalctl.sh` | Stand-in for `journalctl`; reads logs from `/var/log` so the panel's Logs page works |
 | `fly.toml` | Fly.io settings: one machine, no auto-stop, a volume on `/etc/x-ui`. Railway ignores it |

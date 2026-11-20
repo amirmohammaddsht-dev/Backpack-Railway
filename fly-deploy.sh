@@ -9,7 +9,10 @@
 # Needs flyctl (https://fly.io/docs/flyctl/install/) and a login (`fly auth login`) or FLY_API_TOKEN.
 #
 # Settings, all through environment variables:
-#   TUNNEL_LINK       (required) the BackPack Setup Link, backpack://...
+#   TUNNEL_LINK       (required, unless TEST_LINK is set) the BackPack Setup Link, backpack://...
+#   TEST_LINK         optional: a BackPack Connection Test link (backpack://t....); the container
+#                     runs the test at start and prints the verdict in the logs (fly logs).
+#                     Remove it afterwards:  fly secrets unset TEST_LINK -a <app>
 #   PANEL_PATH        secret path of the BackPack web panel          (recommended)
 #   PANEL_PASSWORD    password of the BackPack web panel             (recommended)
 #   TUNNEL_NAME       optional: name for the tunnel
@@ -30,7 +33,9 @@ cd "$(dirname "$0")"
 FLY=$(command -v flyctl || command -v fly || true)
 [ -n "$FLY" ] || die "flyctl is not installed: https://fly.io/docs/flyctl/install/"
 [ -f fly.toml ] || die "fly.toml is missing next to this script"
-[ -n "${TUNNEL_LINK:-}" ] || die "TUNNEL_LINK is empty. Put your BackPack Setup Link (backpack://...) in it."
+if [ -z "${TUNNEL_LINK:-}" ] && [ -z "${TEST_LINK:-}" ]; then
+    die "TUNNEL_LINK is empty. Put your BackPack Setup Link (backpack://...) in it (or a Connection Test link in TEST_LINK to only test)."
+fi
 
 # --- settings --------------------------------------------------------------------------------
 APP=${FLY_APP_NAME:-}
@@ -93,8 +98,8 @@ else
 fi
 
 # --- 3. secrets (staged: they are applied by the deploy below) -----------------------------------
-secrets=("TUNNEL_LINK=$TUNNEL_LINK")
-for name in TUNNEL_NAME TUNNEL_HOST PANEL_PATH PANEL_PASSWORD; do
+secrets=()
+for name in TUNNEL_LINK TEST_LINK TUNNEL_NAME TUNNEL_HOST PANEL_PATH PANEL_PASSWORD; do
     if [ -n "${!name:-}" ]; then secrets+=("$name=${!name}"); fi
 done
 say "Setting secrets: $(printf '%s\n' "${secrets[@]}" | cut -d= -f1 | paste -sd, -)"

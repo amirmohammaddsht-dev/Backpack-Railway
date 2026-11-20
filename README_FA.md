@@ -23,6 +23,7 @@
 - [نصب در ۵ قدم](#نصب-در-۵-قدم)
 - [آپدیت کردن Fork](#آپدیت-کردن-fork)
 - [متغیرها](#متغیرها)
+- [آزمایش اتصال](#آزمایش-اتصال)
 - [تنظیم پورت‌ها](#تنظیم-پورتها)
 - [ماندگاری داده‌ها](#ماندگاری-دادهها)
 - [Fly.io و Blitz.cloud](#flyio-و-blitzcloud)
@@ -199,11 +200,12 @@ BackPack را هم هر بار که build شود، آخرین ریلیز رسم�
 
 ## متغیرها
 
-در **Railway ← Variables** تنظیم می‌شوند. روی Fly.io، `TUNNEL_*` و `PANEL_PATH` / `PANEL_PASSWORD` به شکل secret در Fly می‌روند (GitHub Action و `fly-deploy.sh` خودشان می‌گذارند)، `BACKPACK_VERSION` آرگومان build است و `PANEL_PORT` باید با `internal_port` در `fly.toml` یکی باشد.
+در **Railway ← Variables** تنظیم می‌شوند. روی Fly.io، `TUNNEL_*`، `TEST_LINK` و `PANEL_PATH` / `PANEL_PASSWORD` به شکل secret در Fly می‌روند (GitHub Action و `fly-deploy.sh` خودشان می‌گذارند)، `BACKPACK_VERSION` آرگومان build است و `PANEL_PORT` باید با `internal_port` در `fly.toml` یکی باشد.
 
 | متغیر | الزامی؟ | پیش‌فرض | توضیح |
 |---|---|---|---|
-| `TUNNEL_LINK` | برای ساخت تونل | خالی | Setup Link کامل `backpack://…`. خالی باشد، تونل ساخته نمی‌شود. **توکن تونل داخل آن است؛ محرمانه نگهش دار.** |
+| `TUNNEL_LINK` | برای ساخت تونل | خالی | Setup Link کامل `backpack://…` (کل خط `sudo backpack link apply 'backpack://…'` هم که کنارش چاپ می‌شود قبول است). خالی باشد، تونل ساخته نمی‌شود. **توکن تونل داخل آن است؛ محرمانه نگهش دار.** |
+| `TEST_LINK` | نه | خالی | لینک تست اتصال `backpack://t.…` (یا کل خط `sudo backpack link apply 'backpack://t.…'`). «تست اتصال» (Connection Test) خود BackPack را موقع بالا آمدن کانتینر اجرا می‌کند و نتیجه را در لاگ چاپ می‌کند. [آزمایش اتصال](#آزمایش-اتصال). بعد از تمام شدن تست پاکش کن |
 | `TUNNEL_NAME` | نه | نام پیشنهادی لینک | نام تونل را عوض می‌کند |
 | `TUNNEL_HOST` | نه | خالی | آدرس سرور ایران؛ فقط اگر لینک آن را ندارد |
 | `PANEL_PATH` | توصیه می‌شود | تصادفی | مسیر محرمانهٔ پنل BackPack، ۸ تا ۶۴ کاراکتر از `A-Z a-z 0-9 _ -` |
@@ -214,6 +216,27 @@ BackPack را هم هر بار که build شود، آخرین ریلیز رسم�
 - مقدار نامعتبر `PANEL_*` نادیده گرفته می‌شود و دلیلش در لاگ می‌آید.
 - اگر `PANEL_PATH` یا `PANEL_PASSWORD` را نگذاری، **با هر دیپلوی یا ری‌استارت مقدار تازه‌ای** ساخته می‌شود و فقط یک بار در لاگ (در Fly.io: `fly logs`) بین دو خط `=====` چاپ می‌شود.
 - با هر دیپلوی (و هر ری‌استارت) فایل‌سیستم کانتینر از نو ساخته می‌شود و تونل از روی `TUNNEL_LINK` دوباره ساخته می‌شود. اگر روی سرور ایران چیزی را عوض کردی (پورت‌ها، ترنسپورت)، لینک تازه را از `Manage ← Setup Link` بگیر، در `TUNNEL_LINK` بگذار و دوباره دیپلوی کن (روی Fly.io: `fly secrets set TUNNEL_LINK='backpack://...' -a <app>` که برای اعمال مقدار تازه ماشین را دوباره دیپلوی می‌کند).
+
+---
+
+## آزمایش اتصال
+
+متغیر `TEST_LINK` «تست اتصال» (**Connection Test**) خود BackPack را داخل کانتینر اجرا می‌کند: چند تونل آزمایشی موقت بین این کانتینر و سرور ایران ساخته می‌شود، چند دقیقه کیفیت مسیر را می‌سنجد و نتیجه را در لاگ چاپ می‌کند. تونل واقعی نمی‌سازد و چیزی را عوض نمی‌کند؛ پس می‌توانی قبل از `TUNNEL_LINK` یا روی هاستی که مطمئن نیستی (Railway، Fly.io) امتحانش کنی.
+
+**۱.** روی سرور ایران `sudo backpack` را بزن و **`0) Connection Test`** را انتخاب کن. **بازش بگذار**؛ لینک فقط تا وقتی کار می‌کند که آن تست باز است.
+
+**۲.** لینکی را که نشان می‌دهد (با `backpack://t.` شروع می‌شود) کپی کن. کل خط `sudo backpack link apply 'backpack://t.…'` هم قبول است.
+
+**۳.** در `TEST_LINK` بگذار و دیپلوی کن. Railway: بخش **Variables**. Fly.io: یک secret در GitHub با نام `TEST_LINK` بساز و workflow را دوباره اجرا کن، یا `fly secrets set TEST_LINK='backpack://t.…' -a <app>`.
+
+**۴.** در لاگ دنبال خط‌هایی بگرد که با `[connection-test]` شروع می‌شوند (Fly.io: `fly logs`). سرور ایران هم نتیجهٔ همان تست را نشان می‌دهد.
+
+**۵.** تمام که شد `TEST_LINK` را بردار: در Railway متغیر را حذف کن؛ در Fly.io `fly secrets unset TEST_LINK -a <app>` را بزن (و secret گیت‌هاب را هم پاک کن).
+
+- لینک تست اتصال **Setup Link نیست**. لینک تست در `TUNNEL_LINK` یا Setup Link در `TEST_LINK` چیزی نمی‌سازد و لاگ می‌گوید هر کدام کجا باید برود.
+- تست با هر شروع کانتینر دوباره اجرا می‌شود. اگر بعد از تمام شدن تست در ایران هنوز `TEST_LINK` سر جایش باشد، لاگ فقط می‌گوید تست کامل نشد.
+- برای اندازه‌گیری تمیز، تست را قبل از ساختن تونل اصلی بزن (`TUNNEL_LINK` خالی باشد)؛ تونلی که از قبل کار می‌کند از همان اتصال استفاده می‌کند و می‌تواند اعداد را به هم بزند.
+- لینک تست رازِ همان تست را دارد؛ مثل `TUNNEL_LINK` فقط در Variables یا secretها نگهش دار، نه در Fork.
 
 ---
 
@@ -287,6 +310,7 @@ fly tokens create org -o personal -x 8760h
 |---|---|
 | `FLY_API_TOKEN` | توکن قدم ۲ |
 | `TUNNEL_LINK` | Setup Link تونل BackPack |
+| `TEST_LINK` | اختیاری: لینک تست اتصال، [آزمایش اتصال](#آزمایش-اتصال) |
 | `PANEL_PATH` | یک مسیر محرمانه برای پنل BackPack |
 | `PANEL_PASSWORD` | یک رمز قوی |
 
@@ -346,7 +370,7 @@ fly machine list                                     # باید دقیقاً ی�
 ## امنیت
 
 - **رمز 3x-ui را همان اول عوض کن** (اولین بار `admin` / `admin`). دامنهٔ Railway عمومی است و اسکن می‌شود (روی Fly.io فقط اگر 3x-ui را عمومی کرده باشی). Web Base Path پنل را هم از تنظیمات 3x-ui می‌توانی عوض کنی.
-- **`TUNNEL_LINK` را جایی غیر از Railway Variables یا secretهای Fly / GitHub ننویس** (نه در Fork، نه در چت، Issue یا لاگ). هر کس آن را داشته باشد می‌تواند به‌جای تو به سرور ایران وصل شود. اگر لو رفت، روی سرور ایران توکن را عوض کن و لینک تازه بگیر.
+- **`TUNNEL_LINK` (و `TEST_LINK`) را جایی غیر از Railway Variables یا secretهای Fly / GitHub ننویس** (نه در Fork، نه در چت، Issue یا لاگ). هر کس آن را داشته باشد می‌تواند به‌جای تو به سرور ایران وصل شود. اگر لو رفت، روی سرور ایران توکن را عوض کن و لینک تازه بگیر.
 - پنل BackPack **زیر مسیر محرمانه است و هر چیز بیرون از آن `404` می‌دهد.** `PANEL_PATH` را مثل رمز تصادفی و بلند انتخاب کن. در **Settings ← Security** می‌توانی ورود دومرحله‌ای هم روشن کنی.
 - بعد از ۵ رمز اشتباه، ورود ۱۰ دقیقه بسته می‌شود. پشت پروکسی پلتفرم (Railway، Fly.io) ممکن است همهٔ بازدیدکننده‌ها یک آی‌پی دیده شوند، پس چند تلاش اشتباه ممکن است همه را موقتاً قفل کند.
 - گزینهٔ **HTTPS** داخل تنظیمات پنل BackPack را روشن نکن؛ پنل HTTP ساده سرو می‌کند و TLS را Railway یا Fly.io می‌دهد.
@@ -364,6 +388,9 @@ fly machine list                                     # باید دقیقاً ی�
 | «تعداد تلاش زیاد» | قفل ورود؛ ۱۰ دقیقه صبر کن |
 | `PANEL_PATH ignored` یا `PANEL_PASSWORD ignored` | مقدار نامعتبر است؛ طول و کاراکترها را طبق [متغیرها](#متغیرها) درست کن |
 | `TUNNEL_LINK is not set` | متغیر خالی است |
+| `TUNNEL_LINK holds a Connection Test link` | `backpack://t.…` لینک تست است و تونل نمی‌سازد. آن را در `TEST_LINK` بگذار و Setup Link را از `Manage ← Setup Link` بگیر و در `TUNNEL_LINK` بگذار |
+| `TEST_LINK holds a Setup Link` | برعکسش: Setup Link جایش `TUNNEL_LINK` است. `TEST_LINK` لینکِ `sudo backpack` ← `0) Connection Test` می‌خواهد |
+| `The test did not complete` | تست دیگر در ایران باز نیست، یا لینکش قدیمی یا ناقص است. همان‌جا تست تازه شروع کن، لینک جدیدش را بگذار و بالای این پیام دنبال دلیلی بگرد که خود BackPack نوشته (مثلاً اینکه coordinator تست سرور ایران جواب نداده: آدرس غلط یا فایروال وسط راه) |
 | `link apply failed (exit N)` | لینک ناقص یا خراب است. کل `backpack://…` را کپی کن یا از `Manage ← Setup Link` تازه بگیر |
 | `Tunnel is running but has not connected yet` | فایروال ایران (پورت تونل؛ برای KCP پروتکل `udp`)، روشن بودن تونل در ایران، آدرس داخل لینک، یا فیلتر مسیر. در ایران `Manage ← Status` و `Health Check` را بزن |
 | `nothing is listening on 127.0.0.1:<port> on THIS server` | تونل سالم است ولی inbound نداری. در 3x-ui روی همان پورت inbound بساز، یا در ایران `Manage ← Edit ← Change forwarded ports` را عوض کن و `TUNNEL_LINK` را به‌روز کن |
@@ -388,9 +415,10 @@ fly machine list                                     # باید دقیقاً ی�
 |---|---|
 | `Dockerfile` | از ایمیج 3x-ui شروع می‌کند، `supervisor bash curl gawk` را نصب می‌کند، باینری BackPack را دانلود و با `SHA256SUMS` تأیید و در `/usr/local/bin/backpack` نصب می‌کند و اسکریپت‌ها را کپی می‌کند |
 | `entrypoint.sh` | دیتابیس 3x-ui و پورت `2053` را آماده می‌کند (پورت با هر شروع دوباره تنظیم می‌شود)، `panel-config.sh` را اجرا می‌کند، بعد `exec supervisord` |
-| `supervisord.conf` | برنامه‌ها: `x-ui`، `backpack-webui`، `backpack-monitor` و `tunnel-setup` (یک‌بار مصرف) |
+| `supervisord.conf` | برنامه‌ها: `x-ui`، `backpack-webui`، `backpack-monitor` و `tunnel-setup` و `connection-test` (هر دو یک‌بار مصرف) |
 | `panel-config.sh` | از `PANEL_*` فایل `/etc/backpack/webui.json` را می‌نویسد (اتمی، مجوز `0600`) و در نبودشان مقدار تصادفی می‌سازد |
 | `apply-link.sh` | `backpack link apply` را با `TUNNEL_LINK` (و `TUNNEL_NAME`، `TUNNEL_HOST`) اجرا می‌کند. کد خروج `4` («ساخته شد ولی هنوز وصل نشده») را موفقیت حساب می‌کند |
+| `conn-test.sh` | `backpack link apply` را با لینک تست اتصال `TEST_LINK` اجرا می‌کند (اول چک می‌کند واقعاً لینک تست باشد تا مقدار اشتباه پیام روشن بگیرد) و خروجی را با `[connection-test]` شروع می‌کند. بدون `TEST_LINK` فقط همین را می‌گوید |
 | `fake_systemctl.sh` | جایگزین `systemctl` برای کانتینر بدون systemd |
 | `fake_journalctl.sh` | جایگزین `journalctl`؛ لاگ‌ها را از `/var/log` می‌خواند تا صفحهٔ Logs پنل کار کند |
 | `fly.toml` | تنظیمات Fly.io: یک ماشین، بدون توقف خودکار، Volume روی `/etc/x-ui`. Railway آن را نادیده می‌گیرد |

@@ -43,13 +43,14 @@ RUN set -eux; \
 COPY fake_systemctl.sh /usr/bin/systemctl
 COPY fake_journalctl.sh /usr/bin/journalctl
 COPY apply-link.sh /usr/local/bin/apply-link.sh
+COPY conn-test.sh /usr/local/bin/conn-test.sh
 COPY panel-config.sh /usr/local/bin/panel-config.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 
 # fake_systemctl.sh calls a bare `supervisorctl`, which only finds its socket through a
 # config in one of its default locations - point /etc/supervisord.conf at ours.
-RUN chmod +x /usr/bin/systemctl /usr/bin/journalctl /usr/local/bin/apply-link.sh \
+RUN chmod +x /usr/bin/systemctl /usr/bin/journalctl /usr/local/bin/apply-link.sh /usr/local/bin/conn-test.sh \
              /usr/local/bin/panel-config.sh /entrypoint.sh \
     && ln -sf /etc/supervisor/conf.d/supervisord.conf /etc/supervisord.conf
 

@@ -21,6 +21,9 @@ if [ -n "$TUNNEL_LINK" ]; then
 else
     echo "TUNNEL_LINK is not set - no tunnel will be created."
 fi
+if [ -n "$TEST_LINK" ]; then
+    echo "TEST_LINK is set - a connection test will run from it."
+fi
 
 echo "Services are ready to listen on their native ports."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
