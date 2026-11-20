@@ -44,6 +44,7 @@ jobs:
           FLY_REGION: ${{ inputs.region || vars.FLY_REGION }}
           FLY_ORG: ${{ vars.FLY_ORG }}
           TUNNEL_LINK: ${{ secrets.TUNNEL_LINK }}
+          TEST_LINK: ${{ secrets.TEST_LINK }}
           TUNNEL_NAME: ${{ vars.TUNNEL_NAME }}
           TUNNEL_HOST: ${{ vars.TUNNEL_HOST }}
           PANEL_PATH: ${{ secrets.PANEL_PATH }}
